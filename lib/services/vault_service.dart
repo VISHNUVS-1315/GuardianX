@@ -62,15 +62,10 @@ class VaultService {
 
   static Future<void> pickAndUpload() async {
     final user = _user;
-    final result = await FilePicker.pickFiles(
-      allowMultiple: false,
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty) return;
+    final file = await FilePicker.pickFile();
+    if (file == null) return;
 
-    final file = result.files.single;
-    final bytes = file.bytes;
-    if (bytes == null) throw Exception('Unable to read the selected file.');
+    final bytes = await file.readAsBytes();
     if (bytes.length > 10 * 1024 * 1024) {
       throw Exception('Vault files are limited to 10 MB each.');
     }
