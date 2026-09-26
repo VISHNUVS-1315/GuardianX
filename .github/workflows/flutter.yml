@@ -2,13 +2,13 @@ name: GuardianX Flutter CI
 
 on:
   push:
-    branches: ["main", "rebuild/**"]
+    branches: ["main", "guardianx-rebuild", "rebuild/**"]
   pull_request:
 
 jobs:
   validate-and-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -19,12 +19,15 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Generate Android runner
+      - name: Generate Flutter runners
         run: >
           flutter create .
           --project-name guardianx_app
-          --org com.example
-          --platforms=android
+          --org com.guardianx
+          --platforms=android,web
+
+      - name: Configure Android permissions
+        run: dart run tool/configure_android.dart
 
       - name: Get packages
         run: flutter pub get
@@ -37,6 +40,9 @@ jobs:
 
       - name: Build debug APK
         run: flutter build apk --debug
+
+      - name: Build web
+        run: flutter build web --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
