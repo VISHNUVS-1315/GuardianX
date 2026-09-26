@@ -45,7 +45,7 @@ class ToolsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _ToolCard(
-            icon: Icons.folder_lock_outlined,
+            icon: Icons.folder_outlined,
             title: 'Secure document vault',
             subtitle: 'Store safety documents in your authenticated cloud vault.',
             onTap: () async {
