@@ -13,6 +13,11 @@ class SosService {
         'Please contact me and emergency services if required.';
   }
 
+  static String buildLiveShareMessage(String shareUrl) {
+    return 'GUARDIANX LIVE SAFETY: Follow my live location here: $shareUrl. '
+        'If I appear to be in danger, please contact me and emergency services.';
+  }
+
   static Future<void> openSms(
     List<EmergencyContact> contacts,
     Position position,
@@ -22,18 +27,45 @@ class SosService {
     }
 
     final phones = contacts.map((item) => item.phone).join(',');
-    final message = buildMessage(position);
     final uri = Uri(
       scheme: 'sms',
       path: phones,
-      queryParameters: {'body': message},
+      queryParameters: {'body': buildMessage(position)},
+    );
+    await _launch(uri);
+  }
+
+  static Future<void> openLiveShareSms(
+    List<EmergencyContact> contacts,
+    String shareUrl,
+  ) async {
+    if (contacts.isEmpty) {
+      throw Exception('Add at least one emergency contact first.');
+    }
+    final phones = contacts.map((item) => item.phone).join(',');
+    final uri = Uri(
+      scheme: 'sms',
+      path: phones,
+      queryParameters: {'body': buildLiveShareMessage(shareUrl)},
     );
     await _launch(uri);
   }
 
   static Future<void> openWhatsApp(Position position) async {
-    final message = buildMessage(position);
-    final uri = Uri.https('wa.me', '/', {'text': message});
+    final uri = Uri.https(
+      'wa.me',
+      '/',
+      {'text': buildMessage(position)},
+    );
+    await _launch(uri, external: true);
+  }
+
+  static Future<void> openLiveShareWhatsApp(String shareUrl) async {
+    final uri = Uri.https(
+      'wa.me',
+      '/',
+      {'text': buildLiveShareMessage(shareUrl)},
+    );
     await _launch(uri, external: true);
   }
 
