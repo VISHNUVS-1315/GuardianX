@@ -1,0 +1,45 @@
+name: GuardianX Flutter CI
+
+on:
+  push:
+    branches: ["main", "rebuild/**"]
+  pull_request:
+
+jobs:
+  validate-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate Android runner
+        run: >
+          flutter create .
+          --project-name guardianx_app
+          --org com.example
+          --platforms=android
+
+      - name: Get packages
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GuardianX-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
