@@ -62,7 +62,7 @@ class VaultService {
 
   static Future<void> pickAndUpload() async {
     final user = _user;
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       allowMultiple: false,
       withData: true,
     );
@@ -94,7 +94,8 @@ class VaultService {
   }
 
   static Future<void> open(VaultItem item) async {
-    _user;
+    final user = _user;
+    if (user.uid.isEmpty) throw Exception('Authentication is unavailable.');
     if (item.storagePath.isEmpty) throw Exception('Missing storage path.');
     final url = await FirebaseStorage.instance.ref(item.storagePath).getDownloadURL();
     final ok = await launchUrl(
