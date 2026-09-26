@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../core/firebase_runtime.dart';
@@ -40,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _refreshLocation() async {
+    if (!mounted) return;
     setState(() {
       _loadingLocation = true;
       _message = null;
@@ -71,6 +73,7 @@ class _HomeScreenState extends State<HomeScreen>
       isScrollControlled: true,
       backgroundColor: const Color(0xFF101010),
       builder: (sheetContext) {
+        final shareUrl = _sync.shareUrl;
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 26),
@@ -119,20 +122,31 @@ class _HomeScreenState extends State<HomeScreen>
                 _ActionButton(
                   icon: _sync.active
                       ? Icons.location_disabled_outlined
-                      : Icons.location_searching,
+                      : Icons.share_location_outlined,
                   label: _sync.active
                       ? 'Stop live safety session'
-                      : 'Start cloud live safety session',
-                  onTap: FirebaseRuntime.isReady
+                      : 'Start live guardian tracking',
+                  onTap: FirebaseRuntime.authReady
                       ? () => _toggleLiveSession(sheetContext)
                       : null,
                 ),
-                if (!FirebaseRuntime.isReady) ...[
+                if (_sync.active && shareUrl != null) ...[
+                  const SizedBox(height: 10),
+                  _ActionButton(
+                    icon: Icons.ios_share,
+                    label: 'Share live tracking link',
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      _showLiveShareSheet(shareUrl);
+                    },
+                  ),
+                ],
+                if (!FirebaseRuntime.authReady) ...[
                   const SizedBox(height: 8),
-                  const Text(
-                    'Cloud live session is disabled until Firebase '
-                    'configuration is supplied at build time.',
-                    style: TextStyle(color: Colors.white54, fontSize: 12),
+                  Text(
+                    FirebaseRuntime.error ??
+                        'Firebase authentication is required for cloud live tracking.',
+                    style: const TextStyle(color: Colors.white54, fontSize: 12),
                   ),
                 ],
               ],
@@ -150,13 +164,78 @@ class _HomeScreenState extends State<HomeScreen>
         await _sync.stop();
         _snack('Live safety session stopped.');
       } else {
-        final id = await _sync.start(_contacts);
-        _snack('Live safety session started: $id');
+        final shareUrl = await _sync.start(_contacts);
+        _snack('Live guardian tracking started.');
+        if (mounted && shareUrl.startsWith('http')) {
+          await _showLiveShareSheet(shareUrl);
+        }
       }
       if (mounted) setState(() {});
     } catch (e) {
       _snack(e.toString());
     }
+  }
+
+  Future<void> _showLiveShareSheet(String shareUrl) async {
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF101010),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 26),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Live tracking ready',
+                style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'This private link updates from your current safety session and expires automatically.',
+                style: TextStyle(color: Colors.white60),
+              ),
+              const SizedBox(height: 14),
+              SelectableText(
+                shareUrl,
+                style: const TextStyle(fontSize: 12, color: Colors.white70),
+              ),
+              const SizedBox(height: 16),
+              _ActionButton(
+                icon: Icons.sms_outlined,
+                label: 'Send link by SMS',
+                onTap: () => _runAction(
+                  sheetContext,
+                  () => SosService.openLiveShareSms(_contacts, shareUrl),
+                ),
+              ),
+              const SizedBox(height: 10),
+              _ActionButton(
+                icon: Icons.chat_outlined,
+                label: 'Share link on WhatsApp',
+                onTap: () => _runAction(
+                  sheetContext,
+                  () => SosService.openLiveShareWhatsApp(shareUrl),
+                ),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: shareUrl));
+                  if (!sheetContext.mounted) return;
+                  Navigator.of(sheetContext).pop();
+                  _snack('Live tracking link copied.');
+                },
+                icon: const Icon(Icons.copy),
+                label: const Text('Copy link'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _runAction(
@@ -173,9 +252,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _snack(String value) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(value)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value)));
   }
 
   @override
@@ -210,22 +287,22 @@ class _HomeScreenState extends State<HomeScreen>
               'Personal safety. Live, simple and ready.',
               style: TextStyle(color: Colors.white60),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 22),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(18),
                 child: Row(
                   children: [
                     Icon(
-                      FirebaseRuntime.isReady
+                      FirebaseRuntime.authReady
                           ? Icons.cloud_done_outlined
                           : Icons.phone_android,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        FirebaseRuntime.isReady
-                            ? 'Cloud sync connected'
+                        FirebaseRuntime.authReady
+                            ? 'Firebase live sync connected'
                             : 'Local safety mode active',
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
@@ -235,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen>
                       height: 9,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: FirebaseRuntime.isReady
+                        color: FirebaseRuntime.authReady
                             ? Colors.greenAccent
                             : Colors.amberAccent,
                       ),
@@ -245,14 +322,11 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
             const SizedBox(height: 18),
-            Center(
-              child: SosButton(onActivated: _showSosActions),
-            ),
+            Center(child: SosButton(onActivated: _showSosActions)),
             const SizedBox(height: 14),
             const Center(
               child: Text(
-                'Hold to unlock emergency actions. No message or call is sent '
-                'until you choose an action.',
+                'Hold to unlock emergency actions. Nothing is sent until you choose an action.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white54, fontSize: 12),
               ),
@@ -270,7 +344,7 @@ class _HomeScreenState extends State<HomeScreen>
                         const SizedBox(width: 10),
                         const Expanded(
                           child: Text(
-                            'Live location',
+                            'Current location',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -278,15 +352,12 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         ),
                         IconButton(
-                          onPressed:
-                              _loadingLocation ? null : _refreshLocation,
+                          onPressed: _loadingLocation ? null : _refreshLocation,
                           icon: _loadingLocation
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
+                                  child: CircularProgressIndicator(strokeWidth: 2),
                                 )
                               : const Icon(Icons.refresh),
                         ),
@@ -295,8 +366,7 @@ class _HomeScreenState extends State<HomeScreen>
                     const SizedBox(height: 12),
                     if (p != null)
                       Text(
-                        '${p.latitude.toStringAsFixed(6)}, '
-                        '${p.longitude.toStringAsFixed(6)}\n'
+                        '${p.latitude.toStringAsFixed(6)}, ${p.longitude.toStringAsFixed(6)}\n'
                         'Accuracy ±${p.accuracy.toStringAsFixed(0)} m',
                         style: const TextStyle(color: Colors.white70),
                       )

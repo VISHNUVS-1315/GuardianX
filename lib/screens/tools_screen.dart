@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'ai_assistant_screen.dart';
+import 'vault_screen.dart';
+
 class ToolsScreen extends StatelessWidget {
   const ToolsScreen({super.key});
 
@@ -24,10 +27,34 @@ class ToolsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Direct access to useful official services.',
+            'AI help, private documents and verified safety shortcuts.',
             style: TextStyle(color: Colors.white60),
           ),
           const SizedBox(height: 20),
+          _ToolCard(
+            icon: Icons.auto_awesome_outlined,
+            title: 'GuardianX AI',
+            subtitle: 'Get calm, practical guidance for a safety situation.',
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const AiAssistantScreen(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          _ToolCard(
+            icon: Icons.folder_outlined,
+            title: 'Secure document vault',
+            subtitle: 'Store safety documents in your authenticated cloud vault.',
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const VaultScreen()),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
           _ToolCard(
             icon: Icons.report_outlined,
             title: 'Public grievance portal',
@@ -121,7 +148,7 @@ class _ToolCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.open_in_new, color: Colors.white54),
+              const Icon(Icons.chevron_right, color: Colors.white54),
             ],
           ),
         ),
