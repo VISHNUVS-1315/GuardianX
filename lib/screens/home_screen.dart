@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../core/firebase_runtime.dart';
 import '../models/emergency_contact.dart';
+import '../services/crash_detection_service.dart';
 import '../services/local_store.dart';
 import '../services/location_service.dart';
 import '../services/realtime_sync_service.dart';
@@ -20,10 +23,16 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with AutomaticKeepAliveClientMixin {
   final _sync = RealtimeSyncService();
+  final _crashDetector = CrashDetectionService();
+
   Position? _position;
   List<EmergencyContact> _contacts = const [];
   bool _loadingLocation = false;
+  bool _crashDetectionEnabled = false;
+  bool _handlingCrash = false;
   String? _message;
+  String? _crashStatus;
+  CrashSignal? _lastCrashSignal;
 
   @override
   bool get wantKeepAlive => true;
@@ -36,6 +45,21 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _load() async {
     _contacts = await LocalStore.loadContacts();
+    final crashEnabled = await LocalStore.loadCrashDetectionEnabled();
+
+    if (CrashDetectionService.isSupportedPlatform && crashEnabled) {
+      try {
+        await _crashDetector.start(_handlePotentialCrash);
+        _crashDetectionEnabled = true;
+        _crashStatus = 'Monitoring device motion for possible crash events.';
+      } catch (e) {
+        _crashDetectionEnabled = false;
+        _crashStatus = 'Crash detection could not start: $e';
+      }
+    } else {
+      _crashDetectionEnabled = false;
+    }
+
     if (mounted) setState(() {});
     await _refreshLocation();
   }
@@ -61,6 +85,221 @@ class _HomeScreenState extends State<HomeScreen>
     final current = await LocationService.current();
     if (mounted) setState(() => _position = current);
     return current;
+  }
+
+  Future<void> _toggleCrashDetection(bool enabled) async {
+    if (!CrashDetectionService.isSupportedPlatform) {
+      _snack('Real crash monitoring is available on Android and iOS devices.');
+      return;
+    }
+
+    try {
+      if (enabled) {
+        await _crashDetector.start(_handlePotentialCrash);
+        await LocalStore.saveCrashDetectionEnabled(true);
+        if (mounted) {
+          setState(() {
+            _crashDetectionEnabled = true;
+            _crashStatus =
+                'Monitoring device motion for possible crash events.';
+          });
+        }
+        _snack('Crash detection armed.');
+      } else {
+        await _crashDetector.stop();
+        await LocalStore.saveCrashDetectionEnabled(false);
+        if (mounted) {
+          setState(() {
+            _crashDetectionEnabled = false;
+            _crashStatus = 'Crash detection is off.';
+          });
+        }
+        _snack('Crash detection turned off.');
+      }
+    } catch (e) {
+      await LocalStore.saveCrashDetectionEnabled(false);
+      if (mounted) {
+        setState(() {
+          _crashDetectionEnabled = false;
+          _crashStatus = 'Crash detection could not start: $e';
+        });
+      }
+      _snack(e.toString());
+    }
+  }
+
+  Future<void> _runCrashDemo() async {
+    await _handlePotentialCrash(
+      CrashSignal(
+        detectedAt: DateTime.now(),
+        accelerationMagnitude: 36,
+        rotationMagnitude: 4.2,
+      ),
+    );
+  }
+
+  Future<void> _handlePotentialCrash(CrashSignal signal) async {
+    if (_handlingCrash || !mounted) return;
+
+    _handlingCrash = true;
+    _lastCrashSignal = signal;
+    setState(() {
+      _crashStatus =
+          'Strong impact detected. Waiting for safety confirmation.';
+    });
+
+    try {
+      final dismissedAsSafe = await _showCrashCountdown(signal);
+      if (dismissedAsSafe) {
+        if (mounted) {
+          setState(() {
+            _crashStatus = 'Impact alert cancelled — user confirmed safe.';
+          });
+        }
+        _snack('Crash alert cancelled.');
+        return;
+      }
+
+      await _activateCrashAlert();
+    } finally {
+      _handlingCrash = false;
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<bool> _showCrashCountdown(CrashSignal signal) async {
+    if (!mounted) return true;
+
+    var secondsLeft = 15;
+    Timer? timer;
+
+    final dismissedAsSafe = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            timer ??= Timer.periodic(const Duration(seconds: 1), (timer) {
+              if (!dialogContext.mounted) {
+                timer.cancel();
+                return;
+              }
+
+              if (secondsLeft <= 1) {
+                timer.cancel();
+                Navigator.of(dialogContext).pop(false);
+                return;
+              }
+
+              setDialogState(() => secondsLeft--);
+            });
+
+            return AlertDialog(
+              icon: const Icon(
+                Icons.car_crash_outlined,
+                size: 42,
+                color: Colors.redAccent,
+              ),
+              title: const Text('Possible crash detected'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'GuardianX detected a strong motion event '
+                    '(${signal.accelerationG.toStringAsFixed(1)} g equivalent sensor reading).',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Confirm you are safe within $secondsLeft seconds. '
+                    'Otherwise GuardianX will start the help flow.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Crash detection is a safety aid and can produce false alerts.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white60, fontSize: 12),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton.icon(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: const Text("I'm safe"),
+                ),
+                FilledButton.icon(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFD71920),
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.sos),
+                  label: const Text('Send help now'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    timer?.cancel();
+    return dismissedAsSafe == true;
+  }
+
+  Future<void> _activateCrashAlert() async {
+    _contacts = await LocalStore.loadContacts();
+    String? shareUrl = _sync.shareUrl;
+    String? cloudError;
+
+    if (_sync.active || FirebaseRuntime.authReady) {
+      try {
+        if (!_sync.active) {
+          shareUrl = await _sync.start(_contacts);
+        }
+        await _sync.updateStatus('help');
+      } catch (e) {
+        cloudError = e.toString();
+      }
+    }
+
+    Position? alertPosition;
+    try {
+      alertPosition = await _requirePosition();
+    } catch (_) {
+      alertPosition = null;
+    }
+
+    if (mounted) {
+      setState(() {
+        _crashStatus = cloudError == null
+            ? 'Possible crash help flow active.'
+            : 'Possible crash detected. Cloud tracking unavailable; local alert flow active.';
+      });
+    }
+
+    if (_contacts.isEmpty) {
+      _snack(
+        'Possible crash alert active, but no trusted guardian is configured. Add a guardian in Settings.',
+      );
+      return;
+    }
+
+    try {
+      await SosService.openCrashAlertSms(
+        _contacts,
+        alertPosition,
+        liveShareUrl: shareUrl,
+      );
+      _snack(
+        'Guardian crash alert prepared. Review and send the SMS from your phone.',
+      );
+    } catch (e) {
+      _snack('Crash alert activated, but the SMS app could not open: $e');
+    }
   }
 
   Future<void> _showSosActions() async {
@@ -296,7 +535,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
-    _sync.stop();
+    unawaited(_crashDetector.stop());
+    unawaited(_sync.stop());
     super.dispose();
   }
 
@@ -304,6 +544,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     super.build(context);
     final p = _position;
+    final crashSupported = CrashDetectionService.isSupportedPlatform;
 
     return SafeArea(
       child: RefreshIndicator(
@@ -370,7 +611,78 @@ class _HomeScreenState extends State<HomeScreen>
                 style: TextStyle(color: Colors.white54, fontSize: 12),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+            Card(
+              child: Column(
+                children: [
+                  SwitchListTile.adaptive(
+                    value: crashSupported && _crashDetectionEnabled,
+                    onChanged: crashSupported && !_handlingCrash
+                        ? _toggleCrashDetection
+                        : null,
+                    secondary: Icon(
+                      _crashDetectionEnabled
+                          ? Icons.car_crash
+                          : Icons.car_crash_outlined,
+                    ),
+                    title: const Text(
+                      'Crash detection (Beta)',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    subtitle: Text(
+                      crashSupported
+                          ? 'Uses motion sensors to detect a strong impact plus sudden rotation. A 15-second safety check runs before the help flow.'
+                          : 'Real sensor monitoring is available on Android/iOS. Chrome can still test the alert workflow below.',
+                    ),
+                  ),
+                  if (_crashStatus != null) ...[
+                    const Divider(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 12, 18, 4),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _crashStatus!,
+                          style: TextStyle(
+                            color: _handlingCrash
+                                ? Colors.redAccent
+                                : Colors.white60,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (_lastCrashSignal != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 4, 18, 4),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Last impact reading: ${_lastCrashSignal!.accelerationG.toStringAsFixed(1)} g · '
+                          'rotation ${_lastCrashSignal!.rotationMagnitude.toStringAsFixed(1)} rad/s',
+                          style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 8, 18, 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _handlingCrash ? null : _runCrashDemo,
+                        icon: const Icon(Icons.science_outlined),
+                        label: const Text('Test crash alert countdown'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(18),
