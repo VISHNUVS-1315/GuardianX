@@ -13,10 +13,14 @@ class RealtimeSyncService {
   StreamSubscription<Position>? _subscription;
   String? _sessionId;
   String? _shareId;
+  String _status = 'ended';
+
+  static const _allowedStatuses = {'tracking', 'safe', 'moving', 'help'};
 
   bool get active => _subscription != null;
   String? get sessionId => _sessionId;
   String? get shareId => _shareId;
+  String get status => _status;
   String? get shareUrl => _shareId == null
       ? null
       : '${FirebaseRuntime.publicWebUrl}/#/share/$_shareId';
@@ -41,12 +45,15 @@ class RealtimeSyncService {
 
     _sessionId = sessionDoc.id;
     _shareId = shareDoc.id;
+    _status = 'tracking';
 
     final initialLocation = _locationMap(firstPosition);
     final batch = db.batch();
     batch.set(sessionDoc, {
       'ownerUid': user.uid,
       'active': true,
+      'status': _status,
+      'statusUpdatedAt': FieldValue.serverTimestamp(),
       'startedAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
       'guardianCount': contacts.length,
@@ -55,9 +62,12 @@ class RealtimeSyncService {
     batch.set(shareDoc, {
       'ownerUid': user.uid,
       'active': true,
+      'status': _status,
+      'statusUpdatedAt': FieldValue.serverTimestamp(),
       'startedAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
       'expiresAt': Timestamp.fromDate(expiresAt),
+      'guardianCount': contacts.length,
       'location': initialLocation,
     });
     await batch.commit();
@@ -86,6 +96,40 @@ class RealtimeSyncService {
     return shareUrl ?? sessionDoc.id;
   }
 
+  Future<void> updateStatus(String status) async {
+    if (!_allowedStatuses.contains(status)) {
+      throw ArgumentError.value(status, 'status', 'Unsupported safety status.');
+    }
+    final sessionId = _sessionId;
+    final shareId = _shareId;
+    if (!active || sessionId == null || shareId == null) {
+      throw Exception('Start live guardian tracking before updating status.');
+    }
+    if (!FirebaseRuntime.authReady) {
+      throw Exception('Firebase live sync is unavailable.');
+    }
+
+    final db = FirebaseFirestore.instance;
+    final update = {
+      'status': status,
+      'statusUpdatedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    final batch = db.batch();
+    batch.set(
+      db.collection('safety_sessions').doc(sessionId),
+      update,
+      SetOptions(merge: true),
+    );
+    batch.set(
+      db.collection('sos_shares').doc(shareId),
+      update,
+      SetOptions(merge: true),
+    );
+    await batch.commit();
+    _status = status;
+  }
+
   Future<void> stop() async {
     final sessionId = _sessionId;
     final shareId = _shareId;
@@ -93,6 +137,7 @@ class RealtimeSyncService {
     _subscription = null;
     _sessionId = null;
     _shareId = null;
+    _status = 'ended';
 
     if (!FirebaseRuntime.isReady) return;
 
@@ -101,6 +146,8 @@ class RealtimeSyncService {
       final batch = db.batch();
       final ended = {
         'active': false,
+        'status': 'ended',
+        'statusUpdatedAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
         'endedAt': FieldValue.serverTimestamp(),
       };
