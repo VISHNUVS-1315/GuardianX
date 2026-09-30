@@ -14,15 +14,17 @@ class SosService {
   }
 
   static String buildCrashMessage(
-    Position position, {
+    Position? position, {
     String? liveShareUrl,
   }) {
+    final locationPart = position == null
+        ? 'My current GPS location could not be captured.'
+        : 'My latest location: ${LocationService.mapsUrl(position)}.';
     final livePart = liveShareUrl == null || liveShareUrl.isEmpty
         ? ''
         : ' Live tracking: $liveShareUrl.';
     return 'GUARDIANX POSSIBLE CRASH ALERT: My phone detected a strong impact '
-        'and I did not cancel the alert. My latest location: '
-        '${LocationService.mapsUrl(position)}.$livePart '
+        'and I did not cancel the alert. $locationPart$livePart '
         'Please contact me now. If I do not respond and there appears to be an '
         'emergency, contact emergency services.';
   }
@@ -51,7 +53,7 @@ class SosService {
 
   static Future<void> openCrashAlertSms(
     List<EmergencyContact> contacts,
-    Position position, {
+    Position? position, {
     String? liveShareUrl,
   }) async {
     if (contacts.isEmpty) {
