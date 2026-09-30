@@ -1,0 +1,64 @@
+name: CampusLive Android APKs
+
+on:
+  push:
+    branches: [campuslive-apk-build]
+    paths:
+      - 'campuslive_android/**'
+      - '.github/workflows/campuslive-apk-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Ensure Android SDK 35
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+
+      - name: Build Student and Admin APKs
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd campuslive_android
+          gradle --no-daemon clean assembleStudentRelease assembleAdminRelease
+
+      - name: Prepare artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp campuslive_android/app/build/outputs/apk/student/release/app-student-release.apk dist/CampusLive.apk
+          cp campuslive_android/app/build/outputs/apk/admin/release/app-admin-release.apk dist/CampusLive-Admin.apk
+          unzip -t dist/CampusLive.apk >/dev/null
+          unzip -t dist/CampusLive-Admin.apk >/dev/null
+          sha256sum dist/*.apk | tee dist/SHA256SUMS.txt
+          ls -lh dist
+
+      - name: Upload installable APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: CampusLive-APKs
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30
