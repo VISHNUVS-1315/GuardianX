@@ -46,6 +46,19 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Create demo signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.config/.android"
+          keytool -genkeypair -v \
+            -keystore "$HOME/.config/.android/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=CampusLive Demo,O=CampusLive,C=IN"
+
       - name: Build Student and Admin APKs
         shell: bash
         run: |
