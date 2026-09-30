@@ -13,6 +13,20 @@ class SosService {
         'Please contact me and emergency services if required.';
   }
 
+  static String buildCrashMessage(
+    Position position, {
+    String? liveShareUrl,
+  }) {
+    final livePart = liveShareUrl == null || liveShareUrl.isEmpty
+        ? ''
+        : ' Live tracking: $liveShareUrl.';
+    return 'GUARDIANX POSSIBLE CRASH ALERT: My phone detected a strong impact '
+        'and I did not cancel the alert. My latest location: '
+        '${LocationService.mapsUrl(position)}.$livePart '
+        'Please contact me now. If I do not respond and there appears to be an '
+        'emergency, contact emergency services.';
+  }
+
   static String buildLiveShareMessage(String shareUrl) {
     return 'GUARDIANX LIVE SAFETY: Follow my live location here: $shareUrl. '
         'If I appear to be in danger, please contact me and emergency services.';
@@ -31,6 +45,26 @@ class SosService {
       scheme: 'sms',
       path: phones,
       queryParameters: {'body': buildMessage(position)},
+    );
+    await _launch(uri);
+  }
+
+  static Future<void> openCrashAlertSms(
+    List<EmergencyContact> contacts,
+    Position position, {
+    String? liveShareUrl,
+  }) async {
+    if (contacts.isEmpty) {
+      throw Exception('Add at least one emergency contact first.');
+    }
+
+    final phones = contacts.map((item) => item.phone).join(',');
+    final uri = Uri(
+      scheme: 'sms',
+      path: phones,
+      queryParameters: {
+        'body': buildCrashMessage(position, liveShareUrl: liveShareUrl),
+      },
     );
     await _launch(uri);
   }
