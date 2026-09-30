@@ -11,6 +11,7 @@ class LocalStore {
 
   static const _contactsKey = 'guardianx_emergency_contacts';
   static const _medicalKey = 'guardianx_medical_profile';
+  static const _crashDetectionKey = 'guardianx_crash_detection_enabled';
   static const _secure = FlutterSecureStorage();
 
   static Future<List<EmergencyContact>> loadContacts() async {
@@ -34,6 +35,16 @@ class LocalStore {
       _contactsKey,
       jsonEncode(contacts.map((item) => item.toJson()).toList()),
     );
+  }
+
+  static Future<bool> loadCrashDetectionEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_crashDetectionKey) ?? false;
+  }
+
+  static Future<void> saveCrashDetectionEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_crashDetectionKey, enabled);
   }
 
   static Future<MedicalProfile> loadMedicalProfile() async {
