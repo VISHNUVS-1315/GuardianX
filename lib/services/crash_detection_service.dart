@@ -63,7 +63,7 @@ class CrashDetectionService {
     _error = null;
     _monitoring = true;
 
-    _gyroscopeSubscription = gyroscopeEvents.listen(
+    _gyroscopeSubscription = gyroscopeEventStream().listen(
       _handleGyroscope,
       onError: (Object error) {
         _error = 'Gyroscope unavailable: $error';
@@ -71,7 +71,7 @@ class CrashDetectionService {
       cancelOnError: false,
     );
 
-    _accelerometerSubscription = userAccelerometerEvents.listen(
+    _accelerometerSubscription = userAccelerometerEventStream().listen(
       _handleAcceleration,
       onError: (Object error) {
         _error = 'Accelerometer unavailable: $error';
