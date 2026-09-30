@@ -19,6 +19,47 @@ class LiveShareScreen extends StatelessWidget {
     if (!ok) throw Exception('Unable to open Google Maps.');
   }
 
+  String _statusLabel(String status, bool active) {
+    if (!active) return 'Session ended';
+    return switch (status) {
+      'safe' => 'I am safe',
+      'moving' => 'On the move',
+      'help' => 'NEED HELP',
+      _ => 'Live tracking',
+    };
+  }
+
+  String _statusMessage(String status, bool active) {
+    if (!active) {
+      return 'The owner stopped this GuardianX safety session.';
+    }
+    return switch (status) {
+      'safe' => 'The owner has checked in as safe.',
+      'moving' => 'The owner says they are currently on the move.',
+      'help' => 'The owner has marked that they need help. Contact them and use emergency services when appropriate.',
+      _ => 'GuardianX is sharing the owner’s latest available location.',
+    };
+  }
+
+  IconData _statusIcon(String status, bool active) {
+    if (!active) return Icons.location_off;
+    return switch (status) {
+      'safe' => Icons.verified_user_outlined,
+      'moving' => Icons.directions_walk,
+      'help' => Icons.warning_amber_rounded,
+      _ => Icons.location_searching,
+    };
+  }
+
+  Color _statusColor(String status, bool active) {
+    if (!active) return Colors.white24;
+    return switch (status) {
+      'safe' => Colors.greenAccent,
+      'help' => Colors.redAccent,
+      _ => Colors.white,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!FirebaseRuntime.isReady) {
@@ -74,9 +115,24 @@ class LiveShareScreen extends StatelessWidget {
           final accuracy = location is Map
               ? (location['accuracy'] as num?)?.toDouble()
               : null;
+          final speed = location is Map
+              ? (location['speed'] as num?)?.toDouble()
+              : null;
           final active = data['active'] == true;
+          final status = data['status'] as String? ?? 'tracking';
+          final guardianCount = (data['guardianCount'] as num?)?.toInt();
+
           final updated = data['updatedAt'];
           final updatedAt = updated is Timestamp ? updated.toDate() : null;
+          final statusUpdated = data['statusUpdatedAt'];
+          final statusUpdatedAt =
+              statusUpdated is Timestamp ? statusUpdated.toDate() : null;
+          final isStale = active &&
+              updatedAt != null &&
+              DateTime.now().toUtc().difference(updatedAt.toUtc()) >
+                  const Duration(minutes: 2);
+
+          final statusColor = _statusColor(status, active);
 
           return ListView(
             padding: const EdgeInsets.all(20),
@@ -88,12 +144,11 @@ class LiveShareScreen extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 26,
-                        backgroundColor:
-                            active ? Colors.greenAccent : Colors.white24,
-                        foregroundColor: Colors.black,
-                        child: Icon(
-                          active ? Icons.location_searching : Icons.location_off,
-                        ),
+                        backgroundColor: statusColor,
+                        foregroundColor: statusColor == Colors.white24
+                            ? Colors.white
+                            : Colors.black,
+                        child: Icon(_statusIcon(status, active)),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -101,19 +156,33 @@ class LiveShareScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              active ? 'Live session active' : 'Session ended',
-                              style: const TextStyle(
+                              _statusLabel(status, active),
+                              style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w900,
+                                color: status == 'help' && active
+                                    ? Colors.redAccent
+                                    : Colors.white,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              updatedAt == null
-                                  ? 'Waiting for an update…'
-                                  : 'Last update: ${updatedAt.toLocal()}',
-                              style: const TextStyle(color: Colors.white60),
+                              _statusMessage(status, active),
+                              style: const TextStyle(
+                                color: Colors.white60,
+                                height: 1.35,
+                              ),
                             ),
+                            if (statusUpdatedAt != null) ...[
+                              const SizedBox(height: 5),
+                              Text(
+                                'Status updated: ${statusUpdatedAt.toLocal()}',
+                                style: const TextStyle(
+                                  color: Colors.white38,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -121,6 +190,42 @@ class LiveShareScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              if (isStale) ...[
+                const SizedBox(height: 14),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.sync_problem_outlined),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Location update may be stale',
+                                style: TextStyle(fontWeight: FontWeight.w900),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                updatedAt == null
+                                    ? 'GuardianX has not received a recent GPS update.'
+                                    : 'Last GPS update: ${updatedAt.toLocal()}. The phone may be offline or location updates may be paused.',
+                                style: const TextStyle(
+                                  color: Colors.white60,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 14),
               Card(
                 child: Padding(
@@ -128,12 +233,23 @@ class LiveShareScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Current location',
-                        style: TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w900,
-                        ),
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Current location',
+                              style: TextStyle(
+                                fontSize: 19,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          if (guardianCount != null)
+                            Text(
+                              '$guardianCount guardian${guardianCount == 1 ? '' : 's'}',
+                              style: const TextStyle(color: Colors.white54),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       if (latitude != null && longitude != null) ...[
@@ -146,6 +262,20 @@ class LiveShareScreen extends StatelessWidget {
                           Text(
                             'Accuracy ±${accuracy.toStringAsFixed(0)} m',
                             style: const TextStyle(color: Colors.white60),
+                          ),
+                        ],
+                        if (speed != null && speed > 0.8) ...[
+                          const SizedBox(height: 5),
+                          Text(
+                            'Reported speed ${(speed * 3.6).toStringAsFixed(1)} km/h',
+                            style: const TextStyle(color: Colors.white60),
+                          ),
+                        ],
+                        if (updatedAt != null) ...[
+                          const SizedBox(height: 5),
+                          Text(
+                            'Last GPS update: ${updatedAt.toLocal()}',
+                            style: const TextStyle(color: Colors.white38),
                           ),
                         ],
                         const SizedBox(height: 18),
