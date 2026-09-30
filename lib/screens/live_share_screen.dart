@@ -210,9 +210,7 @@ class LiveShareScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                updatedAt == null
-                                    ? 'GuardianX has not received a recent GPS update.'
-                                    : 'Last GPS update: ${updatedAt.toLocal()}. The phone may be offline or location updates may be paused.',
+                                'Last GPS update: ${updatedAt.toLocal()}. The phone may be offline or location updates may be paused.',
                                 style: const TextStyle(
                                   color: Colors.white60,
                                   height: 1.35,
