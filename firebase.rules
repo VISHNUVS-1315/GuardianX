@@ -12,12 +12,23 @@ service cloud.firestore {
 
     match /sos_shares/{shareId} {
       allow create: if request.auth != null
-        && request.resource.data.ownerUid == request.auth.uid;
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.expiresAt <= request.time + duration.value(6, 'h');
 
-      allow update, delete: if request.auth != null
+      allow update: if request.auth != null
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.expiresAt == resource.data.expiresAt;
+
+      allow delete: if request.auth != null
         && resource.data.ownerUid == request.auth.uid;
 
-      allow read: if request.time < resource.data.expiresAt;
+      // Public guardian links are intentionally direct-document reads only.
+      // Listing active share documents is blocked so the collection cannot be browsed.
+      allow get: if request.time < resource.data.expiresAt;
+      allow list: if false;
     }
 
     match /users/{userId}/{document=**} {

@@ -130,6 +130,18 @@ class _HomeScreenState extends State<HomeScreen>
                       ? () => _toggleLiveSession(sheetContext)
                       : null,
                 ),
+                if (_sync.active) ...[
+                  const SizedBox(height: 10),
+                  _ActionButton(
+                    icon: Icons.warning_amber_rounded,
+                    label: 'Mark live status: NEED HELP',
+                    danger: true,
+                    onTap: () => _runAction(
+                      sheetContext,
+                      () => _setSafetyStatus('help'),
+                    ),
+                  ),
+                ],
                 if (_sync.active && shareUrl != null) ...[
                   const SizedBox(height: 10),
                   _ActionButton(
@@ -175,6 +187,33 @@ class _HomeScreenState extends State<HomeScreen>
       _snack(e.toString());
     }
   }
+
+  Future<void> _setSafetyStatus(String status) async {
+    await _sync.updateStatus(status);
+    if (mounted) setState(() {});
+    final label = switch (status) {
+      'safe' => 'I am safe',
+      'moving' => 'On the move',
+      'help' => 'Need help',
+      _ => 'Live tracking',
+    };
+    _snack('Live status updated: $label.');
+  }
+
+  String get _statusLabel => switch (_sync.status) {
+    'safe' => 'I am safe',
+    'moving' => 'On the move',
+    'help' => 'NEED HELP',
+    'tracking' => 'Tracking',
+    _ => 'Ended',
+  };
+
+  IconData get _statusIcon => switch (_sync.status) {
+    'safe' => Icons.verified_user_outlined,
+    'moving' => Icons.directions_walk,
+    'help' => Icons.warning_amber_rounded,
+    _ => Icons.location_searching,
+  };
 
   Future<void> _showLiveShareSheet(String shareUrl) async {
     if (!mounted) return;
@@ -399,6 +438,74 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ],
             ),
+            if (_sync.active) ...[
+              const SizedBox(height: 14),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(_statusIcon),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Text(
+                              'Live safety status',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            _statusLabel,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: _sync.status == 'help'
+                                  ? Colors.redAccent
+                                  : Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Update this so anyone with your private tracking link can understand your current situation.',
+                        style: TextStyle(color: Colors.white60, height: 1.35),
+                      ),
+                      const SizedBox(height: 14),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () => _setSafetyStatus('safe'),
+                            icon: const Icon(Icons.check_circle_outline),
+                            label: const Text("I'm safe"),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () => _setSafetyStatus('moving'),
+                            icon: const Icon(Icons.directions_walk),
+                            label: const Text('Moving'),
+                          ),
+                          FilledButton.icon(
+                            onPressed: () => _setSafetyStatus('help'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFFD71920),
+                              foregroundColor: Colors.white,
+                            ),
+                            icon: const Icon(Icons.warning_amber_rounded),
+                            label: const Text('Need help'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
