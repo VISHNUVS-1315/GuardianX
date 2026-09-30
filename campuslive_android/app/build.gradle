@@ -1,0 +1,41 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.campuslive.mobile'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.campuslive.mobile'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '1.0.0'
+        buildConfigField 'String', 'DEFAULT_URL', '"https://campuslive-api-v1.onrender.com"'
+    }
+
+    flavorDimensions += 'role'
+    productFlavors {
+        student {
+            dimension 'role'
+            applicationIdSuffix '.student'
+            resValue 'string', 'app_name', 'CampusLive'
+            buildConfigField 'String', 'APP_MODE', '"student"'
+        }
+        admin {
+            dimension 'role'
+            applicationIdSuffix '.admin'
+            resValue 'string', 'app_name', 'CampusLive Admin'
+            buildConfigField 'String', 'APP_MODE', '"admin"'
+        }
+    }
+
+    signingConfigs { releaseDemo { initWith signingConfigs.debug } }
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.releaseDemo
+        }
+    }
+    buildFeatures { buildConfig true }
+}
