@@ -82,6 +82,10 @@ function validateIncident(body) {
     }
   }
 
+  if (body.dryRun != null && typeof body.dryRun !== 'boolean') {
+    return 'dryRun must be boolean.';
+  }
+
   return null;
 }
 
@@ -104,7 +108,7 @@ const server = http.createServer(async (req, res) => {
       ok: true,
       service: SERVICE_NAME,
       status: 'live',
-      version: '1.0.0',
+      version: '1.0.1',
       regionHint: process.env.RENDER_REGION || null,
       startedAt: STARTED_AT,
       serverTime: new Date().toISOString(),
@@ -118,6 +122,7 @@ const server = http.createServer(async (req, res) => {
       service: SERVICE_NAME,
       capabilities: {
         incidentIntake: true,
+        incidentDryRunValidation: true,
         firebaseRealtimeTracking: 'client-managed',
         emergencyNumberIndia: '112',
       },
@@ -133,6 +138,18 @@ const server = http.createServer(async (req, res) => {
       const validationError = validateIncident(body);
       if (validationError) {
         sendJson(res, 400, { ok: false, error: validationError });
+        return;
+      }
+
+      if (body.dryRun === true) {
+        sendJson(res, 200, {
+          ok: true,
+          dryRun: true,
+          validated: true,
+          type: body.type,
+          message: 'Incident payload validated; no incident was created.',
+          serverTime: new Date().toISOString(),
+        });
         return;
       }
 
