@@ -6,6 +6,11 @@ on:
     paths:
       - 'campuslive_android/**'
       - '.github/workflows/campuslive-apk-build.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'campuslive_android/**'
+      - '.github/workflows/campuslive-apk-build.yml'
   workflow_dispatch:
 
 permissions:
