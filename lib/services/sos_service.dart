@@ -2,6 +2,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/emergency_contact.dart';
+import 'backend_api_service.dart';
 import 'location_service.dart';
 
 class SosService {
@@ -42,6 +43,8 @@ class SosService {
       throw Exception('Add at least one emergency contact first.');
     }
 
+    await BackendApiService.reportIncident(type: 'sos', position: position);
+
     final phones = contacts.map((item) => item.phone).join(',');
     final uri = Uri(
       scheme: 'sms',
@@ -56,6 +59,14 @@ class SosService {
     Position? position, {
     String? liveShareUrl,
   }) async {
+    if (position != null) {
+      await BackendApiService.reportIncident(
+        type: 'possible_crash',
+        position: position,
+        shareUrl: liveShareUrl,
+      );
+    }
+
     if (contacts.isEmpty) {
       throw Exception('Add at least one emergency contact first.');
     }
@@ -88,6 +99,8 @@ class SosService {
   }
 
   static Future<void> openWhatsApp(Position position) async {
+    await BackendApiService.reportIncident(type: 'sos', position: position);
+
     final uri = Uri.https(
       'wa.me',
       '/',
