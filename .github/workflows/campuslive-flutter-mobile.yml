@@ -1,6 +1,12 @@
 name: CampusLive Flutter APK
 
 on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "campuslive_flutter/**"
+      - ".github/workflows/campuslive-flutter-mobile.yml"
   push:
     branches:
       - campuslive-flutter-mobile-build
