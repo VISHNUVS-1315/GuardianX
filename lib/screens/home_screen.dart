@@ -198,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen>
               icon: const Icon(
                 Icons.car_crash_outlined,
                 size: 42,
-                color: Colors.redAccent,
+                color: Colors.white,
               ),
               title: const Text('Possible crash detected'),
               content: Column(
@@ -233,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen>
                 FilledButton.icon(
                   onPressed: () => Navigator.of(dialogContext).pop(false),
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFD71920),
+                    backgroundColor: Colors.white,
                     foregroundColor: Colors.white,
                   ),
                   icon: const Icon(Icons.sos),
@@ -310,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen>
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF101010),
+      backgroundColor: Colors.black,
       builder: (sheetContext) {
         final shareUrl = _sync.shareUrl;
         return SafeArea(
@@ -458,7 +458,7 @@ class _HomeScreenState extends State<HomeScreen>
     if (!mounted) return;
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF101010),
+      backgroundColor: Colors.black,
       builder: (sheetContext) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 26),
@@ -593,8 +593,8 @@ class _HomeScreenState extends State<HomeScreen>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: FirebaseRuntime.authReady
-                            ? Colors.greenAccent
-                            : Colors.amberAccent,
+                            ? Colors.white
+                            : Colors.white70,
                       ),
                     ),
                   ],
@@ -645,7 +645,7 @@ class _HomeScreenState extends State<HomeScreen>
                           _crashStatus!,
                           style: TextStyle(
                             color: _handlingCrash
-                                ? Colors.redAccent
+                                ? Colors.white
                                 : Colors.white60,
                             fontSize: 12,
                           ),
@@ -776,7 +776,7 @@ class _HomeScreenState extends State<HomeScreen>
                             style: TextStyle(
                               fontWeight: FontWeight.w900,
                               color: _sync.status == 'help'
-                                  ? Colors.redAccent
+                                  ? Colors.white
                                   : Colors.white,
                             ),
                           ),
@@ -805,7 +805,7 @@ class _HomeScreenState extends State<HomeScreen>
                           FilledButton.icon(
                             onPressed: () => _setSafetyStatus('help'),
                             style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFFD71920),
+                              backgroundColor: Colors.white,
                               foregroundColor: Colors.white,
                             ),
                             icon: const Icon(Icons.warning_amber_rounded),
@@ -876,7 +876,7 @@ class _ActionButton extends StatelessWidget {
       onPressed: onTap,
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(54),
-        backgroundColor: danger ? const Color(0xFFD71920) : Colors.white,
+        backgroundColor: danger ? Colors.white : Colors.white,
         foregroundColor: danger ? Colors.white : Colors.black,
       ),
       icon: Icon(icon),
