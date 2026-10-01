@@ -5,7 +5,7 @@ import '../models/medical_profile.dart';
 import '../services/local_store.dart';
 
 class MedicalIdScreen extends StatefulWidget {
-  const MedicalIdScreen({super.key});
+  MedicalIdScreen({super.key});
 
   @override
   State<MedicalIdScreen> createState() => _MedicalIdScreenState();
@@ -94,18 +94,18 @@ class _MedicalIdScreenState extends State<MedicalIdScreen>
       child: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
+          padding: EdgeInsets.fromLTRB(20, 18, 20, 110),
           children: [
-            const Text(
+            Text(
               'Medical ID',
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
             ),
-            const SizedBox(height: 6),
-            const Text(
+            SizedBox(height: 6),
+            Text(
               'Emergency health details are encrypted on this device.',
-              style: TextStyle(color: Colors.white60),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             _field(_name, 'Full name', Icons.person_outline),
             _field(
               _blood,
@@ -122,26 +122,26 @@ class _MedicalIdScreenState extends State<MedicalIdScreen>
               Icons.note_alt_outlined,
               lines: 3,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             FilledButton.icon(
               onPressed: _saving ? null : _save,
               icon: _saving
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.black,
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
                     )
-                  : const Icon(Icons.lock_outline),
-              label: const Text('Save Medical ID'),
+                  : Icon(Icons.lock_outline),
+              label: Text('Save Medical ID'),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: _copy,
-              icon: const Icon(Icons.copy),
-              label: const Text('Copy emergency summary'),
+              icon: Icon(Icons.copy),
+              label: Text('Copy emergency summary'),
             ),
           ],
         ),
@@ -157,7 +157,7 @@ class _MedicalIdScreenState extends State<MedicalIdScreen>
     int lines = 1,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: controller,
         maxLines: lines,
