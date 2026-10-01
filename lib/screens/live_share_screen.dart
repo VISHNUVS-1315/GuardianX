@@ -163,8 +163,8 @@ class LiveShareScreen extends StatelessWidget {
                                 fontSize: 20,
                                 fontWeight: FontWeight.w900,
                                 color: status == 'help' && active
-                                    ? Colors.white
-                                    : Colors.white,
+                                    ? GuardianXTheme.danger
+                                    : Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             SizedBox(height: 4),
