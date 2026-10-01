@@ -120,7 +120,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                 padding: EdgeInsets.fromLTRB(18, 8, 18, 4),
                 child: Text(
                   'AI is in setup mode. Configure GUARDIANX_AI_PROXY or a development GROQ_API_KEY.',
-                  style: TextStyle(color: Colors.amberAccent, fontSize: 12),
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ),
             Expanded(
