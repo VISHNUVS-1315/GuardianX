@@ -4,7 +4,7 @@ import '../services/ai_service.dart';
 import '../services/sos_service.dart';
 
 class AiAssistantScreen extends StatefulWidget {
-  const AiAssistantScreen({super.key});
+  AiAssistantScreen({super.key});
 
   @override
   State<AiAssistantScreen> createState() => _AiAssistantScreenState();
@@ -68,7 +68,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       if (!_scrollController.hasClients) return;
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 220),
+        duration: Duration(milliseconds: 220),
         curve: Curves.easeOut,
       );
     });
@@ -77,26 +77,26 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('GuardianX AI')),
+      appBar: AppBar(title: Text('GuardianX AI')),
       body: SafeArea(
         child: Column(
           children: [
             Container(
               width: double.infinity,
-              margin: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-              padding: const EdgeInsets.all(14),
+              margin: EdgeInsets.fromLTRB(16, 10, 16, 4),
+              padding: EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFF171717),
+                color: Color(0xFF171717),
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.emergency_outlined),
-                  const SizedBox(width: 10),
-                  const Expanded(
+                  Icon(Icons.emergency_outlined),
+                  SizedBox(width: 10),
+                  Expanded(
                     child: Text(
                       'Immediate danger? Use emergency services instead of waiting for AI.',
-                      style: TextStyle(fontSize: 12, color: Colors.white70),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ),
                   TextButton(
@@ -110,23 +110,23 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                         );
                       }
                     },
-                    child: const Text('112'),
+                    child: Text('112'),
                   ),
                 ],
               ),
             ),
             if (!AiService.configured)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.fromLTRB(18, 8, 18, 4),
                 child: Text(
                   'AI is in setup mode. Configure GUARDIANX_AI_PROXY or a development GROQ_API_KEY.',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                 ),
               ),
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+                padding: EdgeInsets.fromLTRB(16, 14, 16, 18),
                 itemCount: _messages.length,
                 itemBuilder: (context, index) {
                   final item = _messages[index];
@@ -135,20 +135,22 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                     alignment:
                         user ? Alignment.centerRight : Alignment.centerLeft,
                     child: Container(
-                      constraints: const BoxConstraints(maxWidth: 520),
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.symmetric(
+                      constraints: BoxConstraints(maxWidth: 520),
+                      margin: EdgeInsets.only(bottom: 10),
+                      padding: EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: user ? Colors.white : const Color(0xFF1B1B1B),
+                        color: user ? Colors.white : Color(0xFF1B1B1B),
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Text(
                         item.text,
                         style: TextStyle(
-                          color: user ? Colors.black : Colors.white,
+                          color: user
+                              ? Theme.of(context).colorScheme.onPrimary
+                              : Theme.of(context).colorScheme.onSurface,
                           height: 1.35,
                         ),
                       ),
@@ -173,21 +175,21 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                       maxLines: 4,
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _send(),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'Ask about a safety situation…',
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   IconButton.filled(
                     onPressed: _sending ? null : _send,
                     icon: _sending
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.arrow_upward),
+                        : Icon(Icons.arrow_upward),
                   ),
                 ],
               ),
