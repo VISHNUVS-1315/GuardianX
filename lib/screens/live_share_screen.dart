@@ -54,8 +54,8 @@ class LiveShareScreen extends StatelessWidget {
   Color _statusColor(String status, bool active) {
     if (!active) return Colors.white24;
     return switch (status) {
-      'safe' => Colors.greenAccent,
-      'help' => Colors.redAccent,
+      'safe' => Colors.white,
+      'help' => Colors.white,
       _ => Colors.white,
     };
   }
@@ -161,7 +161,7 @@ class LiveShareScreen extends StatelessWidget {
                                 fontSize: 20,
                                 fontWeight: FontWeight.w900,
                                 color: status == 'help' && active
-                                    ? Colors.redAccent
+                                    ? Colors.white
                                     : Colors.white,
                               ),
                             ),
