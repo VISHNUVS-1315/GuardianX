@@ -111,7 +111,7 @@ class _NearbyScreenState extends State<NearbyScreen>
           ),
           if (_error != null) ...[
             const SizedBox(height: 16),
-            Text(_error!, style: const TextStyle(color: Colors.redAccent)),
+            Text(_error!, style: const TextStyle(color: Colors.white)),
           ],
           const SizedBox(height: 18),
           if (!_loading && _places.isEmpty && _error == null)
