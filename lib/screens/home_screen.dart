@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../core/firebase_runtime.dart';
+import '../core/theme.dart';
 import '../models/emergency_contact.dart';
 import '../services/crash_detection_service.dart';
 import '../services/local_store.dart';
@@ -14,7 +15,7 @@ import '../services/sos_service.dart';
 import '../widgets/sos_button.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -179,7 +180,7 @@ class _HomeScreenState extends State<HomeScreen>
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
-            timer ??= Timer.periodic(const Duration(seconds: 1), (timer) {
+            timer ??= Timer.periodic(Duration(seconds: 1), (timer) {
               if (!dialogContext.mounted) {
                 timer.cancel();
                 return;
@@ -195,12 +196,12 @@ class _HomeScreenState extends State<HomeScreen>
             });
 
             return AlertDialog(
-              icon: const Icon(
+              icon: Icon(
                 Icons.car_crash_outlined,
                 size: 42,
-                color: Colors.white,
+                color: GuardianXTheme.danger,
               ),
-              title: const Text('Possible crash detected'),
+              title: Text('Possible crash detected'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -209,35 +210,35 @@ class _HomeScreenState extends State<HomeScreen>
                     '(${signal.accelerationG.toStringAsFixed(1)} g equivalent sensor reading).',
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Text(
                     'Confirm you are safe within $secondsLeft seconds. '
                     'Otherwise GuardianX will start the help flow.',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    style: TextStyle(fontWeight: FontWeight.w700),
                   ),
-                  const SizedBox(height: 10),
-                  const Text(
+                  SizedBox(height: 10),
+                  Text(
                     'Crash detection is a safety aid and can produce false alerts.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white60, fontSize: 12),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                   ),
                 ],
               ),
               actions: [
                 TextButton.icon(
                   onPressed: () => Navigator.of(dialogContext).pop(true),
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: const Text("I'm safe"),
+                  icon: Icon(Icons.check_circle_outline),
+                  label: Text("I'm safe"),
                 ),
                 FilledButton.icon(
                   onPressed: () => Navigator.of(dialogContext).pop(false),
                   style: FilledButton.styleFrom(
-                    backgroundColor: Colors.white,
+                    backgroundColor: GuardianXTheme.danger,
                     foregroundColor: Colors.white,
                   ),
-                  icon: const Icon(Icons.sos),
-                  label: const Text('Send help now'),
+                  icon: Icon(Icons.sos),
+                  label: Text('Send help now'),
                 ),
               ],
             );
@@ -310,26 +311,26 @@ class _HomeScreenState extends State<HomeScreen>
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       builder: (sheetContext) {
         final shareUrl = _sync.shareUrl;
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 26),
+            padding: EdgeInsets.fromLTRB(20, 18, 20, 26),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                Text(
                   'Emergency actions',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 Text(
                   '${_contacts.length} trusted contact(s) configured',
-                  style: const TextStyle(color: Colors.white60),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
                 _ActionButton(
                   icon: Icons.sms_outlined,
                   label: 'Send SOS by SMS',
@@ -338,7 +339,7 @@ class _HomeScreenState extends State<HomeScreen>
                     () => SosService.openSms(_contacts, position),
                   ),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 _ActionButton(
                   icon: Icons.chat_outlined,
                   label: 'Share SOS on WhatsApp',
@@ -347,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen>
                     () => SosService.openWhatsApp(position),
                   ),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 _ActionButton(
                   icon: Icons.call,
                   label: 'Call emergency 112',
@@ -357,7 +358,7 @@ class _HomeScreenState extends State<HomeScreen>
                     SosService.callEmergency,
                   ),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 _ActionButton(
                   icon: _sync.active
                       ? Icons.location_disabled_outlined
@@ -370,7 +371,7 @@ class _HomeScreenState extends State<HomeScreen>
                       : null,
                 ),
                 if (_sync.active) ...[
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   _ActionButton(
                     icon: Icons.warning_amber_rounded,
                     label: 'Mark live status: NEED HELP',
@@ -382,7 +383,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ],
                 if (_sync.active && shareUrl != null) ...[
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   _ActionButton(
                     icon: Icons.ios_share,
                     label: 'Share live tracking link',
@@ -393,11 +394,11 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ],
                 if (!FirebaseRuntime.authReady) ...[
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     FirebaseRuntime.error ??
                         'Firebase authentication is required for cloud live tracking.',
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                   ),
                 ],
               ],
@@ -458,29 +459,29 @@ class _HomeScreenState extends State<HomeScreen>
     if (!mounted) return;
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       builder: (sheetContext) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 26),
+          padding: EdgeInsets.fromLTRB(20, 18, 20, 26),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'Live tracking ready',
                 style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
               ),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: 8),
+              Text(
                 'This private link updates from your current safety session and expires automatically.',
-                style: TextStyle(color: Colors.white60),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               SelectableText(
                 shareUrl,
-                style: const TextStyle(fontSize: 12, color: Colors.white70),
+                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               _ActionButton(
                 icon: Icons.sms_outlined,
                 label: 'Send link by SMS',
@@ -489,7 +490,7 @@ class _HomeScreenState extends State<HomeScreen>
                   () => SosService.openLiveShareSms(_contacts, shareUrl),
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               _ActionButton(
                 icon: Icons.chat_outlined,
                 label: 'Share link on WhatsApp',
@@ -498,7 +499,7 @@ class _HomeScreenState extends State<HomeScreen>
                   () => SosService.openLiveShareWhatsApp(shareUrl),
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: () async {
                   await Clipboard.setData(ClipboardData(text: shareUrl));
@@ -506,8 +507,8 @@ class _HomeScreenState extends State<HomeScreen>
                   Navigator.of(sheetContext).pop();
                   _snack('Live tracking link copied.');
                 },
-                icon: const Icon(Icons.copy),
-                label: const Text('Copy link'),
+                icon: Icon(Icons.copy),
+                label: Text('Copy link'),
               ),
             ],
           ),
@@ -550,9 +551,9 @@ class _HomeScreenState extends State<HomeScreen>
       child: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
+          padding: EdgeInsets.fromLTRB(20, 18, 20, 110),
           children: [
-            const Row(
+            Row(
               children: [
                 Icon(Icons.shield, size: 34),
                 SizedBox(width: 10),
@@ -562,15 +563,15 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ],
             ),
-            const SizedBox(height: 6),
-            const Text(
+            SizedBox(height: 6),
+            Text(
               'Personal safety. Live, simple and ready.',
-              style: TextStyle(color: Colors.white60),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: 22),
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(18),
+                padding: EdgeInsets.all(18),
                 child: Row(
                   children: [
                     Icon(
@@ -578,13 +579,13 @@ class _HomeScreenState extends State<HomeScreen>
                           ? Icons.cloud_done_outlined
                           : Icons.phone_android,
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         FirebaseRuntime.authReady
                             ? 'Firebase live sync connected'
                             : 'Local safety mode active',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                        style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
                     Container(
@@ -593,25 +594,25 @@ class _HomeScreenState extends State<HomeScreen>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: FirebaseRuntime.authReady
-                            ? Colors.white
-                            : Colors.white70,
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: 18),
             Center(child: SosButton(onActivated: _showSosActions)),
-            const SizedBox(height: 14),
-            const Center(
+            SizedBox(height: 14),
+            Center(
               child: Text(
                 'Hold to unlock emergency actions. Nothing is sent until you choose an action.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white54, fontSize: 12),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Card(
               child: Column(
                 children: [
@@ -625,7 +626,7 @@ class _HomeScreenState extends State<HomeScreen>
                           ? Icons.car_crash
                           : Icons.car_crash_outlined,
                     ),
-                    title: const Text(
+                    title: Text(
                       'Crash detection (Beta)',
                       style: TextStyle(fontWeight: FontWeight.w900),
                     ),
@@ -636,17 +637,17 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                   if (_crashStatus != null) ...[
-                    const Divider(height: 1),
+                    Divider(height: 1),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 12, 18, 4),
+                      padding: EdgeInsets.fromLTRB(18, 12, 18, 4),
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
                           _crashStatus!,
                           style: TextStyle(
                             color: _handlingCrash
-                                ? Colors.white
-                                : Colors.white60,
+                                ? Theme.of(context).colorScheme.onSurface
+                                : Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 12,
                           ),
                         ),
@@ -655,45 +656,45 @@ class _HomeScreenState extends State<HomeScreen>
                   ],
                   if (_lastCrashSignal != null)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 4, 18, 4),
+                      padding: EdgeInsets.fromLTRB(18, 4, 18, 4),
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
                           'Last impact reading: ${_lastCrashSignal!.accelerationG.toStringAsFixed(1)} g · '
                           'rotation ${_lastCrashSignal!.rotationMagnitude.toStringAsFixed(1)} rad/s',
-                          style: const TextStyle(
-                            color: Colors.white38,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.outline,
                             fontSize: 11,
                           ),
                         ),
                       ),
                     ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 8, 18, 16),
+                    padding: EdgeInsets.fromLTRB(18, 8, 18, 16),
                     child: SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         onPressed: _handlingCrash ? null : _runCrashDemo,
-                        icon: const Icon(Icons.science_outlined),
-                        label: const Text('Test crash alert countdown'),
+                        icon: Icon(Icons.science_outlined),
+                        label: Text('Test crash alert countdown'),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(18),
+                padding: EdgeInsets.all(18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.my_location),
-                        const SizedBox(width: 10),
-                        const Expanded(
+                        Icon(Icons.my_location),
+                        SizedBox(width: 10),
+                        Expanded(
                           child: Text(
                             'Current location',
                             style: TextStyle(
@@ -705,32 +706,32 @@ class _HomeScreenState extends State<HomeScreen>
                         IconButton(
                           onPressed: _loadingLocation ? null : _refreshLocation,
                           icon: _loadingLocation
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 20,
                                   height: 20,
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
-                              : const Icon(Icons.refresh),
+                              : Icon(Icons.refresh),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     if (p != null)
                       Text(
                         '${p.latitude.toStringAsFixed(6)}, ${p.longitude.toStringAsFixed(6)}\n'
                         'Accuracy ±${p.accuracy.toStringAsFixed(0)} m',
-                        style: const TextStyle(color: Colors.white70),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       )
                     else
                       Text(
                         _message ?? 'Waiting for GPS…',
-                        style: const TextStyle(color: Colors.white60),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             Row(
               children: [
                 Expanded(
@@ -740,7 +741,7 @@ class _HomeScreenState extends State<HomeScreen>
                     label: 'Guardians',
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: _MetricCard(
                     icon: Icons.location_searching,
@@ -751,18 +752,18 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             ),
             if (_sync.active) ...[
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(18),
+                  padding: EdgeInsets.all(18),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
                           Icon(_statusIcon),
-                          const SizedBox(width: 10),
-                          const Expanded(
+                          SizedBox(width: 10),
+                          Expanded(
                             child: Text(
                               'Live safety status',
                               style: TextStyle(
@@ -782,34 +783,34 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
+                      SizedBox(height: 8),
+                      Text(
                         'Update this so anyone with your private tracking link can understand your current situation.',
-                        style: TextStyle(color: Colors.white60, height: 1.35),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.35),
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
                           OutlinedButton.icon(
                             onPressed: () => _setSafetyStatus('safe'),
-                            icon: const Icon(Icons.check_circle_outline),
-                            label: const Text("I'm safe"),
+                            icon: Icon(Icons.check_circle_outline),
+                            label: Text("I'm safe"),
                           ),
                           OutlinedButton.icon(
                             onPressed: () => _setSafetyStatus('moving'),
-                            icon: const Icon(Icons.directions_walk),
-                            label: const Text('Moving'),
+                            icon: Icon(Icons.directions_walk),
+                            label: Text('Moving'),
                           ),
                           FilledButton.icon(
                             onPressed: () => _setSafetyStatus('help'),
                             style: FilledButton.styleFrom(
-                              backgroundColor: Colors.white,
+                              backgroundColor: GuardianXTheme.danger,
                               foregroundColor: Colors.white,
                             ),
-                            icon: const Icon(Icons.warning_amber_rounded),
-                            label: const Text('Need help'),
+                            icon: Icon(Icons.warning_amber_rounded),
+                            label: Text('Need help'),
                           ),
                         ],
                       ),
@@ -840,16 +841,16 @@ class _MetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           children: [
             Icon(icon),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               value,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
             ),
-            Text(label, style: const TextStyle(color: Colors.white54)),
+            Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ],
         ),
       ),
@@ -875,9 +876,13 @@ class _ActionButton extends StatelessWidget {
     return FilledButton.icon(
       onPressed: onTap,
       style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(54),
-        backgroundColor: danger ? Colors.white : Colors.white,
-        foregroundColor: danger ? Colors.white : Colors.black,
+        minimumSize: Size.fromHeight(54),
+        backgroundColor: danger
+            ? GuardianXTheme.danger
+            : Theme.of(context).colorScheme.primary,
+        foregroundColor: danger
+            ? Colors.white
+            : Theme.of(context).colorScheme.onPrimary,
       ),
       icon: Icon(icon),
       label: Text(label),
