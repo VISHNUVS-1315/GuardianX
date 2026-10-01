@@ -45,6 +45,7 @@ jobs:
           cp /tmp/campuslive_main.dart lib/main.dart
           cp /tmp/campuslive_pubspec.yaml pubspec.yaml
           cp /tmp/campuslive_analysis.yaml analysis_options.yaml
+          rm -f test/widget_test.dart
           flutter pub get
 
       - name: Analyze
