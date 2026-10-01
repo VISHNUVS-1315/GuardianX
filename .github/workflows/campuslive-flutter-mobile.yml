@@ -1,0 +1,67 @@
+name: CampusLive Flutter APK
+
+on:
+  push:
+    branches:
+      - campuslive-flutter-mobile-build
+    paths:
+      - "campuslive_flutter/**"
+      - ".github/workflows/campuslive-flutter-mobile.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate Android runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd campuslive_flutter
+          cp lib/main.dart /tmp/campuslive_main.dart
+          cp pubspec.yaml /tmp/campuslive_pubspec.yaml
+          cp analysis_options.yaml /tmp/campuslive_analysis.yaml
+          flutter create . --platforms=android --org com.campuslive --project-name campuslive
+          cp /tmp/campuslive_main.dart lib/main.dart
+          cp /tmp/campuslive_pubspec.yaml pubspec.yaml
+          cp /tmp/campuslive_analysis.yaml analysis_options.yaml
+          flutter pub get
+
+      - name: Analyze
+        shell: bash
+        run: |
+          cd campuslive_flutter
+          flutter analyze
+
+      - name: Build release APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd campuslive_flutter
+          flutter build apk --release
+          mkdir -p ../apk_output
+          cp build/app/outputs/flutter-apk/app-release.apk ../apk_output/CampusLive-Flutter.apk
+          sha256sum ../apk_output/CampusLive-Flutter.apk > ../apk_output/SHA256.txt
+          unzip -t ../apk_output/CampusLive-Flutter.apk >/dev/null
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CampusLive-Flutter-APK
+          path: apk_output/*
+          if-no-files-found: error
+          retention-days: 30
