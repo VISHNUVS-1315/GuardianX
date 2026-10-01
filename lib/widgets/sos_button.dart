@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../core/theme.dart';
+
 class SosButton extends StatefulWidget {
   const SosButton({super.key, required this.onActivated});
 
@@ -55,14 +57,14 @@ class _SosButtonState extends State<SosButton> {
         height: 210,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: _holding ? Colors.white : Colors.black,
+          color: GuardianXTheme.danger,
           border: Border.all(
-            color: Colors.white,
+            color: GuardianXTheme.danger,
             width: 5,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.white.withValues(alpha: 0.16),
+              color: GuardianXTheme.danger.withValues(alpha: 0.28),
               blurRadius: _holding ? 48 : 28,
               spreadRadius: _holding ? 12 : 5,
             ),
@@ -77,13 +79,13 @@ class _SosButtonState extends State<SosButton> {
                   Icon(
                     Icons.sos_rounded,
                     size: 62,
-                    color: _holding ? Colors.black : Colors.white,
+                    color: Colors.white,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     _holding ? 'KEEP HOLDING' : 'HOLD 3 SEC',
                     style: TextStyle(
-                      color: _holding ? Colors.black : Colors.white,
+                      color: Colors.white,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.2,
                     ),
