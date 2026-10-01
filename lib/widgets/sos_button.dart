@@ -55,14 +55,14 @@ class _SosButtonState extends State<SosButton> {
         height: 210,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: _holding ? Colors.white : const Color(0xFFD71920),
+          color: _holding ? Colors.white : Colors.black,
           border: Border.all(
-            color: _holding ? Colors.white : const Color(0xFFFF6B6B),
+            color: Colors.white,
             width: 5,
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFD71920).withValues(alpha: 0.28),
+              color: Colors.white.withValues(alpha: 0.16),
               blurRadius: _holding ? 48 : 28,
               spreadRadius: _holding ? 12 : 5,
             ),
