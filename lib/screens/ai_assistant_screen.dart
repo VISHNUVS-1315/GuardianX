@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme.dart';
 import '../services/ai_service.dart';
 import '../services/sos_service.dart';
 
@@ -86,12 +87,12 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
               margin: EdgeInsets.fromLTRB(16, 10, 16, 4),
               padding: EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Color(0xFF171717),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.emergency_outlined),
+                  Icon(Icons.emergency_outlined, color: GuardianXTheme.danger),
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -99,7 +100,11 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                       style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ),
-                  TextButton(
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: GuardianXTheme.danger,
+                      foregroundColor: Colors.white,
+                    ),
                     onPressed: () async {
                       try {
                         await SosService.callEmergency();
@@ -142,7 +147,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: user ? Colors.white : Color(0xFF1B1B1B),
+                        color: user
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Text(
