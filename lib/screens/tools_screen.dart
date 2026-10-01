@@ -5,7 +5,7 @@ import 'ai_assistant_screen.dart';
 import 'vault_screen.dart';
 
 class ToolsScreen extends StatelessWidget {
-  const ToolsScreen({super.key});
+  ToolsScreen({super.key});
 
   Future<void> _open(String url) async {
     final ok = await launchUrl(
@@ -19,18 +19,18 @@ class ToolsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
+        padding: EdgeInsets.fromLTRB(20, 18, 20, 110),
         children: [
-          const Text(
+          Text(
             'Safety tools',
             style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
           ),
-          const SizedBox(height: 6),
-          const Text(
+          SizedBox(height: 6),
+          Text(
             'AI help, private documents and verified safety shortcuts.',
-            style: TextStyle(color: Colors.white60),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           _ToolCard(
             icon: Icons.auto_awesome_outlined,
             title: 'GuardianX AI',
@@ -38,30 +38,30 @@ class ToolsScreen extends StatelessWidget {
             onTap: () async {
               await Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => const AiAssistantScreen(),
+                  builder: (_) => AiAssistantScreen(),
                 ),
               );
             },
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _ToolCard(
             icon: Icons.folder_outlined,
             title: 'Secure document vault',
             subtitle: 'Store safety documents in your authenticated cloud vault.',
             onTap: () async {
               await Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const VaultScreen()),
+                MaterialPageRoute<void>(builder: (_) => VaultScreen()),
               );
             },
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _ToolCard(
             icon: Icons.report_outlined,
             title: 'Public grievance portal',
             subtitle: 'Open the Government of India grievance portal.',
             onTap: () => _open('https://pgportal.gov.in/'),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _ToolCard(
             icon: Icons.receipt_long_outlined,
             title: 'E-Challan checker',
@@ -70,14 +70,14 @@ class ToolsScreen extends StatelessWidget {
               'https://echallan.parivahan.gov.in/index/accused-challan',
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _ToolCard(
             icon: Icons.call_outlined,
             title: 'Emergency 112',
             subtitle: 'Open India’s emergency number in the dialer.',
             onTap: () => _open('tel:112'),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _ToolCard(
             icon: Icons.health_and_safety_outlined,
             title: 'National Health Portal',
@@ -119,36 +119,36 @@ class _ToolCard extends StatelessWidget {
           }
         },
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: EdgeInsets.all(18),
           child: Row(
             children: [
               CircleAvatar(
                 radius: 25,
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 child: Icon(icon),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(color: Colors.white60),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Colors.white54),
+              Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ],
           ),
         ),
