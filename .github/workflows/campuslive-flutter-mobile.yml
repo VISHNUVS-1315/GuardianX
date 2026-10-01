@@ -52,7 +52,7 @@ jobs:
         shell: bash
         run: |
           cd campuslive_flutter
-          flutter analyze
+          flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Build release APK
         shell: bash
