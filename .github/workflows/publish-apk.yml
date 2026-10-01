@@ -32,6 +32,20 @@ jobs:
       - name: Configure Android permissions
         run: dart run tool/configure_android.dart
 
+      - name: Use install-safe package ID
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/build.gradle.kts")
+          s = p.read_text()
+          old = 'applicationId = "com.guardianx.guardianx_app"'
+          new = 'applicationId = "com.guardianx.guardianx_install"'
+          if old not in s:
+              raise SystemExit("Expected applicationId not found")
+          p.write_text(s.replace(old, new))
+          print("Using com.guardianx.guardianx_install")
+          PY
+
       - name: Get packages
         run: flutter pub get
 
@@ -46,4 +60,4 @@ jobs:
           gh release create guardianx-latest \
             build/app/outputs/flutter-apk/app-debug.apk#GuardianX.apk \
             --title "GuardianX Latest APK" \
-            --notes "Latest GuardianX Android APK with adaptive light/dark mode and red emergency actions."
+            --notes "Install-safe GuardianX Android APK with adaptive light/dark mode and red emergency actions. Uses a separate package ID to avoid debug-signature upgrade conflicts."
