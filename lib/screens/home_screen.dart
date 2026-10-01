@@ -777,8 +777,8 @@ class _HomeScreenState extends State<HomeScreen>
                             style: TextStyle(
                               fontWeight: FontWeight.w900,
                               color: _sync.status == 'help'
-                                  ? Colors.white
-                                  : Colors.white,
+                                  ? GuardianXTheme.danger
+                                  : Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ],
