@@ -1,10 +1,12 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'package:flutter/material.dart';
 
 import '../core/firebase_runtime.dart';
 import '../services/vault_service.dart';
 
 class VaultScreen extends StatefulWidget {
-  const VaultScreen({super.key});
+  VaultScreen({super.key});
 
   @override
   State<VaultScreen> createState() => _VaultScreenState();
@@ -37,16 +39,16 @@ class _VaultScreenState extends State<VaultScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete document?'),
+        title: Text('Delete document?'),
         content: Text(item.name),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: Text('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete'),
+            child: Text('Delete'),
           ),
         ],
       ),
@@ -67,17 +69,17 @@ class _VaultScreenState extends State<VaultScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Secure Vault')),
+      appBar: AppBar(title: Text('Secure Vault')),
       floatingActionButton: FirebaseRuntime.authReady
           ? FloatingActionButton.extended(
               onPressed: _uploading ? null : _upload,
               icon: _uploading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.upload_file),
+                  : Icon(Icons.upload_file),
               label: Text(_uploading ? 'Uploading…' : 'Add document'),
             )
           : null,
@@ -89,7 +91,7 @@ class _VaultScreenState extends State<VaultScreen> {
                 if (snapshot.hasError) {
                   return Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: EdgeInsets.all(24),
                       child: Text(
                         'Vault unavailable: ${snapshot.error}',
                         textAlign: TextAlign.center,
@@ -98,34 +100,34 @@ class _VaultScreenState extends State<VaultScreen> {
                   );
                 }
                 if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Center(child: CircularProgressIndicator());
                 }
                 final items = snapshot.data!;
                 if (items.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Padding(
                       padding: EdgeInsets.all(24),
                       child: Text(
                         'No documents yet. Add IDs, insurance documents or other safety files you want available from your account.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white60, height: 1.4),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.4),
                       ),
                     ),
                   );
                 }
 
                 return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 100),
                   itemCount: items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (_, __) => SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final item = items[index];
                     return Card(
                       child: ListTile(
                         onTap: () => _open(item),
-                        leading: const CircleAvatar(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black,
+                        leading: CircleAvatar(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Theme.of(context).colorScheme.onPrimary,
                           child: Icon(Icons.description_outlined),
                         ),
                         title: Text(item.name),
@@ -161,7 +163,7 @@ class _VaultSetupState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Padding(
         padding: EdgeInsets.all(28),
         child: Column(
@@ -178,7 +180,7 @@ class _VaultSetupState extends StatelessWidget {
             Text(
               'The vault requires Firebase Authentication, Firestore and Storage. No secret keys are stored in the repository.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white60, height: 1.4),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.4),
             ),
           ],
         ),

@@ -16,7 +16,7 @@ class ShellScreen extends StatefulWidget {
 class _ShellScreenState extends State<ShellScreen> {
   int _index = 0;
 
-  static const _pages = [
+  static final _pages = [
     HomeScreen(),
     NearbyScreen(),
     MedicalIdScreen(),

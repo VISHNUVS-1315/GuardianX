@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'package:flutter/material.dart';
 
 import '../core/firebase_runtime.dart';
@@ -5,7 +7,7 @@ import '../models/emergency_contact.dart';
 import '../services/local_store.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  SettingsScreen({super.key});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -36,20 +38,20 @@ class _SettingsScreenState extends State<SettingsScreen>
     final result = await showDialog<EmergencyContact>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Add trusted contact'),
+        title: Text('Add trusted contact'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: name,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Name'),
+              decoration: InputDecoration(labelText: 'Name'),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextField(
               controller: phone,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Phone with country code',
                 hintText: '+91xxxxxxxxxx',
               ),
@@ -59,7 +61,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            child: Text('Cancel'),
           ),
           FilledButton(
             onPressed: () {
@@ -71,7 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 EmergencyContact(name: cleanName, phone: cleanPhone),
               );
             },
-            child: const Text('Add'),
+            child: Text('Add'),
           ),
         ],
       ),
@@ -98,21 +100,21 @@ class _SettingsScreenState extends State<SettingsScreen>
 
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
+        padding: EdgeInsets.fromLTRB(20, 18, 20, 110),
         children: [
-          const Text(
+          Text(
             'Settings',
             style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
           ),
-          const SizedBox(height: 6),
-          const Text(
+          SizedBox(height: 6),
+          Text(
             'Configure your trusted emergency network.',
-            style: TextStyle(color: Colors.white60),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(18),
+              padding: EdgeInsets.all(18),
               child: Row(
                 children: [
                   Icon(
@@ -120,7 +122,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         ? Icons.cloud_done
                         : Icons.cloud_off_outlined,
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,16 +131,16 @@ class _SettingsScreenState extends State<SettingsScreen>
                           FirebaseRuntime.isReady
                               ? 'Firebase connected'
                               : 'Firebase not configured',
-                          style: const TextStyle(fontWeight: FontWeight.w800),
+                          style: TextStyle(fontWeight: FontWeight.w800),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Text(
                           FirebaseRuntime.isReady
                               ? 'Anonymous auth + Firestore live sync enabled.'
                               : 'Core SOS, GPS, nearby search and Medical ID '
                                   'still work locally.',
-                          style: const TextStyle(
-                            color: Colors.white60,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 12,
                           ),
                         ),
@@ -149,10 +151,10 @@ class _SettingsScreenState extends State<SettingsScreen>
               ),
             ),
           ),
-          const SizedBox(height: 22),
+          SizedBox(height: 22),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Trusted contacts',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
@@ -160,28 +162,28 @@ class _SettingsScreenState extends State<SettingsScreen>
               ),
               IconButton.filled(
                 onPressed: _addContact,
-                icon: const Icon(Icons.add),
+                icon: Icon(Icons.add),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           if (_contacts.isEmpty)
-            const Card(
+            Card(
               child: Padding(
                 padding: EdgeInsets.all(20),
                 child: Text(
                   'No contacts yet. Add at least one trusted person so '
                   'GuardianX can prepare an SOS SMS with your live location.',
-                  style: TextStyle(color: Colors.white60),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ),
             ),
           for (var i = 0; i < _contacts.length; i++) ...[
             Card(
               child: ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
+                leading: CircleAvatar(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   child: Icon(Icons.person),
                 ),
                 title: Text(_contacts[i].name),
@@ -189,19 +191,19 @@ class _SettingsScreenState extends State<SettingsScreen>
                 trailing: IconButton(
                   tooltip: 'Remove',
                   onPressed: () => _remove(i),
-                  icon: const Icon(Icons.delete_outline),
+                  icon: Icon(Icons.delete_outline),
                 ),
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
           ],
-          const SizedBox(height: 24),
-          const Text(
+          SizedBox(height: 24),
+          Text(
             'Privacy',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
           ),
-          const SizedBox(height: 10),
-          const Card(
+          SizedBox(height: 10),
+          Card(
             child: Padding(
               padding: EdgeInsets.all(18),
               child: Text(
@@ -209,7 +211,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 'encrypted device storage. Live location is written to '
                 'Firestore only when you explicitly start a cloud safety '
                 'session and Firebase is configured.',
-                style: TextStyle(color: Colors.white70, height: 1.45),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.45),
               ),
             ),
           ),

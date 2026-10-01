@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -6,7 +8,7 @@ import '../services/nearby_service.dart';
 import '../services/sos_service.dart';
 
 class NearbyScreen extends StatefulWidget {
-  const NearbyScreen({super.key});
+  NearbyScreen({super.key});
 
   @override
   State<NearbyScreen> createState() => _NearbyScreenState();
@@ -55,42 +57,42 @@ class _NearbyScreenState extends State<NearbyScreen>
 
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
+        padding: EdgeInsets.fromLTRB(20, 18, 20, 110),
         children: [
-          const Text(
+          Text(
             'Nearby essentials',
             style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
           ),
-          const SizedBox(height: 6),
-          const Text(
+          SizedBox(height: 6),
+          Text(
             'Real places around your current GPS location.',
-            style: TextStyle(color: Colors.white60),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           FilledButton.icon(
             onPressed: _loading ? null : _load,
             icon: _loading
-                ? const SizedBox(
+                ? SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.black,
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                   )
-                : const Icon(Icons.radar),
+                : Icon(Icons.radar),
             label: Text(_places.isEmpty ? 'Find nearby services' : 'Refresh'),
           ),
           if (_position != null) ...[
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Text(
               'Searching within 5 km of '
               '${_position!.latitude.toStringAsFixed(4)}, '
               '${_position!.longitude.toStringAsFixed(4)}',
-              style: const TextStyle(color: Colors.white54, fontSize: 12),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
             ),
           ],
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -110,27 +112,27 @@ class _NearbyScreenState extends State<NearbyScreen>
             ],
           ),
           if (_error != null) ...[
-            const SizedBox(height: 16),
-            Text(_error!, style: const TextStyle(color: Colors.white)),
+            SizedBox(height: 16),
+            Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
           ],
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           if (!_loading && _places.isEmpty && _error == null)
             const _EmptyNearby(),
           for (final place in _visible) ...[
             Card(
               child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
+                contentPadding: EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 8,
                 ),
                 leading: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   child: Icon(_iconFor(place.type)),
                 ),
                 title: Text(
                   place.name,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: TextStyle(fontWeight: FontWeight.w700),
                 ),
                 subtitle: Text(
                   '${_labelFor(place.type)} • ${place.distanceLabel}',
@@ -141,11 +143,11 @@ class _NearbyScreenState extends State<NearbyScreen>
                     place.latitude,
                     place.longitude,
                   ),
-                  icon: const Icon(Icons.directions),
+                  icon: Icon(Icons.directions),
                 ),
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
           ],
         ],
       ),
@@ -188,7 +190,7 @@ class _EmptyNearby extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
+    return Card(
       child: Padding(
         padding: EdgeInsets.all(22),
         child: Column(
@@ -199,7 +201,7 @@ class _EmptyNearby extends StatelessWidget {
               'Use “Find nearby services” to query hospitals, police stations, '
               'pharmacies and fuel stations around your real location.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white60),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),

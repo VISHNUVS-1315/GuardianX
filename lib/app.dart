@@ -13,7 +13,9 @@ class GuardianXApp extends StatelessWidget {
     return MaterialApp(
       title: 'GuardianX',
       debugShowCheckedModeBanner: false,
-      theme: GuardianXTheme.dark,
+      theme: GuardianXTheme.light,
+      darkTheme: GuardianXTheme.dark,
+      themeMode: ThemeMode.system,
       home: shareId == null
           ? const ShellScreen()
           : LiveShareScreen(shareId: shareId),

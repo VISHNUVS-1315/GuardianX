@@ -1,11 +1,14 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/firebase_runtime.dart';
+import '../core/theme.dart';
 
 class LiveShareScreen extends StatelessWidget {
-  const LiveShareScreen({super.key, required this.shareId});
+  LiveShareScreen({super.key, required this.shareId});
 
   final String shareId;
 
@@ -51,19 +54,18 @@ class LiveShareScreen extends StatelessWidget {
     };
   }
 
-  Color _statusColor(String status, bool active) {
-    if (!active) return Colors.white24;
+  Color _statusColor(BuildContext context, String status, bool active) {
+    if (!active) return Theme.of(context).colorScheme.outlineVariant;
     return switch (status) {
-      'safe' => Colors.white,
-      'help' => Colors.white,
-      _ => Colors.white,
+      'help' => GuardianXTheme.danger,
+      _ => Theme.of(context).colorScheme.primary,
     };
   }
 
   @override
   Widget build(BuildContext context) {
     if (!FirebaseRuntime.isReady) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
           child: Padding(
             padding: EdgeInsets.all(28),
@@ -77,7 +79,7 @@ class LiveShareScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('GuardianX Live Safety')),
+      appBar: AppBar(title: Text('GuardianX Live Safety')),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance
             .collection('sos_shares')
@@ -93,7 +95,7 @@ class LiveShareScreen extends StatelessWidget {
             );
           }
           if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator());
           }
 
           final data = snapshot.data!.data();
@@ -130,27 +132,29 @@ class LiveShareScreen extends StatelessWidget {
           final isStale = active &&
               updatedAt != null &&
               DateTime.now().toUtc().difference(updatedAt.toUtc()) >
-                  const Duration(minutes: 2);
+                  Duration(minutes: 2);
 
-          final statusColor = _statusColor(status, active);
+          final statusColor = _statusColor(context, status, active);
 
           return ListView(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(20),
             children: [
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(20),
                   child: Row(
                     children: [
                       CircleAvatar(
                         radius: 26,
                         backgroundColor: statusColor,
-                        foregroundColor: statusColor == Colors.white24
-                            ? Colors.white
-                            : Colors.black,
+                        foregroundColor: !active
+                            ? Theme.of(context).colorScheme.onSurfaceVariant
+                            : status == 'help'
+                                ? Colors.white
+                                : Theme.of(context).colorScheme.onPrimary,
                         child: Icon(_statusIcon(status, active)),
                       ),
-                      const SizedBox(width: 14),
+                      SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,24 +165,24 @@ class LiveShareScreen extends StatelessWidget {
                                 fontSize: 20,
                                 fontWeight: FontWeight.w900,
                                 color: status == 'help' && active
-                                    ? Colors.white
-                                    : Colors.white,
+                                    ? GuardianXTheme.danger
+                                    : Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4),
                             Text(
                               _statusMessage(status, active),
-                              style: const TextStyle(
-                                color: Colors.white60,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 height: 1.35,
                               ),
                             ),
                             if (statusUpdatedAt != null) ...[
-                              const SizedBox(height: 5),
+                              SizedBox(height: 5),
                               Text(
                                 'Status updated: ${statusUpdatedAt.toLocal()}',
-                                style: const TextStyle(
-                                  color: Colors.white38,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.outline,
                                   fontSize: 12,
                                 ),
                               ),
@@ -191,28 +195,28 @@ class LiveShareScreen extends StatelessWidget {
                 ),
               ),
               if (isStale) ...[
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(18),
+                    padding: EdgeInsets.all(18),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.sync_problem_outlined),
-                        const SizedBox(width: 12),
+                        Icon(Icons.sync_problem_outlined),
+                        SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Location update may be stale',
                                 style: TextStyle(fontWeight: FontWeight.w900),
                               ),
-                              const SizedBox(height: 4),
+                              SizedBox(height: 4),
                               Text(
                                 'Last GPS update: ${updatedAt.toLocal()}. The phone may be offline or location updates may be paused.',
-                                style: const TextStyle(
-                                  color: Colors.white60,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   height: 1.35,
                                 ),
                               ),
@@ -224,16 +228,16 @@ class LiveShareScreen extends StatelessWidget {
                   ),
                 ),
               ],
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'Current location',
                               style: TextStyle(
@@ -245,38 +249,38 @@ class LiveShareScreen extends StatelessWidget {
                           if (guardianCount != null)
                             Text(
                               '$guardianCount guardian${guardianCount == 1 ? '' : 's'}',
-                              style: const TextStyle(color: Colors.white54),
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                             ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       if (latitude != null && longitude != null) ...[
                         Text(
                           '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}',
-                          style: const TextStyle(fontSize: 16),
+                          style: TextStyle(fontSize: 16),
                         ),
                         if (accuracy != null) ...[
-                          const SizedBox(height: 5),
+                          SizedBox(height: 5),
                           Text(
                             'Accuracy ±${accuracy.toStringAsFixed(0)} m',
-                            style: const TextStyle(color: Colors.white60),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                           ),
                         ],
                         if (speed != null && speed > 0.8) ...[
-                          const SizedBox(height: 5),
+                          SizedBox(height: 5),
                           Text(
                             'Reported speed ${(speed * 3.6).toStringAsFixed(1)} km/h',
-                            style: const TextStyle(color: Colors.white60),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                           ),
                         ],
                         if (updatedAt != null) ...[
-                          const SizedBox(height: 5),
+                          SizedBox(height: 5),
                           Text(
                             'Last GPS update: ${updatedAt.toLocal()}',
-                            style: const TextStyle(color: Colors.white38),
+                            style: TextStyle(color: Theme.of(context).colorScheme.outline),
                           ),
                         ],
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18),
                         FilledButton.icon(
                           onPressed: () async {
                             try {
@@ -288,22 +292,22 @@ class LiveShareScreen extends StatelessWidget {
                               );
                             }
                           },
-                          icon: const Icon(Icons.map_outlined),
-                          label: const Text('Open in Google Maps'),
+                          icon: Icon(Icons.map_outlined),
+                          label: Text('Open in Google Maps'),
                         ),
                       ] else
-                        const Text(
+                        Text(
                           'Waiting for GPS…',
-                          style: TextStyle(color: Colors.white60),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              const Text(
+              SizedBox(height: 16),
+              Text(
                 'For emergencies in India, call 112. GuardianX tracking is a support tool and is not an emergency response service.',
-                style: TextStyle(color: Colors.white54, fontSize: 12, height: 1.4),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, height: 1.4),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -329,21 +333,21 @@ class _MessageState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(28),
+        padding: EdgeInsets.all(28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 58),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Text(
               title,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               message,
-              style: const TextStyle(color: Colors.white60, height: 1.4),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.4),
               textAlign: TextAlign.center,
             ),
           ],
