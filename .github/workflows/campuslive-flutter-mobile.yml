@@ -48,6 +48,13 @@ jobs:
           rm -f test/widget_test.dart
           python3 - <<'PY'
           from pathlib import Path
+          gradle = Path("android/app/build.gradle.kts")
+          s = gradle.read_text()
+          s = s.replace('applicationId = "com.campuslive.campuslive"', 'applicationId = "com.campuslive.studentos"')
+          gradle.write_text(s)
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
           p = Path("android/app/src/main/AndroidManifest.xml")
           s = p.read_text()
           permission = '<uses-permission android:name="android.permission.INTERNET"/>'
@@ -75,6 +82,9 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk ../apk_output/CampusLive-Flutter.apk
           sha256sum ../apk_output/CampusLive-Flutter.apk > ../apk_output/SHA256.txt
           unzip -t ../apk_output/CampusLive-Flutter.apk >/dev/null
+          BUILD_TOOLS=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+          "$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner" verify --verbose --print-certs ../apk_output/CampusLive-Flutter.apk
+          "$ANDROID_HOME/build-tools/$BUILD_TOOLS/aapt" dump badging ../apk_output/CampusLive-Flutter.apk | head -n 6
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
