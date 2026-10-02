@@ -42,6 +42,20 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(128))
 
 
+class StudentProfile(Base):
+    __tablename__ = "student_profiles"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True, index=True)
+    student_id: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    semester: Mapped[str] = mapped_column(String(20), default="3")
+    bus_code: Mapped[str] = mapped_column(String(30), default="")
+    boarding_stop: Mapped[str] = mapped_column(String(120), default="")
+    is_hosteller: Mapped[bool] = mapped_column(Boolean, default=False)
+    attendance_percent: Mapped[int] = mapped_column(Integer, default=86)
+    cgpa: Mapped[float] = mapped_column(Float, default=7.64)
+    assignments_due: Mapped[int] = mapped_column(Integer, default=3)
+
+
 class SessionToken(Base):
     __tablename__ = "session_tokens"
     token: Mapped[str] = mapped_column(String(160), primary_key=True)
@@ -241,56 +255,82 @@ def serialize_user(user: User) -> dict:
 
 
 def seed(db: Session) -> None:
-    if db.scalar(select(User.id).limit(1)) is not None:
-        return
+    if db.scalar(select(User.id).limit(1)) is None:
+        password = hash_password("Campus@123")
+        db.add_all(
+            [
+                User(email="student@campuslive.demo", name="Vishnu S", role="student", department="Mechanical Engineering", year="2", section="A", password_hash=password),
+                User(email="admin@campuslive.demo", name="Campus Administrator", role="admin", department="Administration", password_hash=password),
+                User(email="faculty@campuslive.demo", name="Dr. Kumar", role="faculty", department="Mechanical Engineering", password_hash=password),
+                User(email="driver@campuslive.demo", name="Bus 07 Driver", role="driver", department="Transport", password_hash=password),
+            ]
+        )
+        db.commit()
 
-    password = hash_password("Campus@123")
-    db.add_all(
-        [
-            User(email="student@campuslive.demo", name="Vishnu S", role="student", department="Mechanical Engineering", year="2", section="A", password_hash=password),
-            User(email="admin@campuslive.demo", name="Campus Administrator", role="admin", department="Administration", password_hash=password),
-            User(email="faculty@campuslive.demo", name="Dr. Kumar", role="faculty", department="Mechanical Engineering", password_hash=password),
-            User(email="driver@campuslive.demo", name="Bus 07 Driver", role="driver", department="Transport", password_hash=password),
-        ]
-    )
-    db.add_all(
-        [
-            Room(code="M201", block="Mechanical Block", available=True, note="Free until 12:20 PM"),
-            Room(code="M202", block="Mechanical Block", available=False, note="Thermodynamics until 12:20 PM"),
-            Room(code="M203", block="Mechanical Block", available=True, note="Free until 1:10 PM"),
-            Room(code="C301", block="Main Block", available=False, note="Programming class until 11:50 AM"),
-            Room(code="A102", block="AI Block", available=True, note="Free until 2:00 PM"),
-        ]
-    )
-    db.add_all(
-        [
-            Announcement(title="Room changed", message="Engineering Mechanics: M204 → C302", audience="Mechanical • Year 2"),
-            Announcement(title="Transport update", message="Bus 03 delayed by approximately 12 minutes", audience="Transport users"),
-            Announcement(title="EV Workshop", message="Registration is open. 42 seats remaining.", audience="All campus"),
-        ]
-    )
-    db.add(Bus(code="BUS07", route="Udumalpet → Pollachi Road → Campus", eta_minutes=8, status="On time"))
-    db.add_all(
-        [
-            Event(title="EV Design Workshop", date_text="Oct 04", seats_left=42),
-            Event(title="TechFest 2026", date_text="Oct 12", seats_left=113),
-            Event(title="CAD Sprint Challenge", date_text="Oct 18", seats_left=28),
-        ]
-    )
+    if db.scalar(select(Room.id).limit(1)) is None:
+        db.add_all(
+            [
+                Room(code="M201", block="Mechanical Block", available=True, note="Free until 12:20 PM"),
+                Room(code="M202", block="Mechanical Block", available=False, note="Thermodynamics until 12:20 PM"),
+                Room(code="M203", block="Mechanical Block", available=True, note="Free until 1:10 PM"),
+                Room(code="C301", block="Main Block", available=False, note="Programming class until 11:50 AM"),
+                Room(code="A102", block="AI Block", available=True, note="Free until 2:00 PM"),
+            ]
+        )
+
+    if db.scalar(select(Announcement.id).limit(1)) is None:
+        db.add_all(
+            [
+                Announcement(title="Room changed", message="Engineering Mechanics: M204 → C302", audience="Mechanical • Year 2"),
+                Announcement(title="My bus update", message="Bus 07 is running on time for Udumalpet students.", audience="Bus 07 Users"),
+                Announcement(title="EV Workshop", message="Registration is open. 42 seats remaining.", audience="All campus"),
+                Announcement(title="CSE notice", message="CSE Lab 3 maintenance today.", audience="Computer Science • Year 2"),
+            ]
+        )
+
+    if db.scalar(select(Bus.id).limit(1)) is None:
+        db.add(Bus(code="BUS07", route="Udumalpet → Pollachi Road → Campus", eta_minutes=8, status="On time"))
+
+    if db.scalar(select(Event.id).limit(1)) is None:
+        db.add_all(
+            [
+                Event(title="EV Design Workshop", date_text="Oct 04", seats_left=42),
+                Event(title="TechFest 2026", date_text="Oct 12", seats_left=113),
+                Event(title="CAD Sprint Challenge", date_text="Oct 18", seats_left=28),
+            ]
+        )
     db.commit()
 
     student = db.scalar(select(User).where(User.email == "student@campuslive.demo"))
     if student:
-        db.add(
-            Complaint(
-                ticket="CMP-1027",
-                user_id=student.id,
-                category="Electrical",
-                location="C204",
-                description="Fan not working",
-                status="Assigned",
+        profile = db.scalar(select(StudentProfile).where(StudentProfile.user_id == student.id))
+        if profile is None:
+            db.add(
+                StudentProfile(
+                    user_id=student.id,
+                    student_id="25ME103",
+                    semester="3",
+                    bus_code="BUS07",
+                    boarding_stop="Udumalpet Bus Stand",
+                    is_hosteller=False,
+                    attendance_percent=86,
+                    cgpa=7.64,
+                    assignments_due=3,
+                )
             )
-        )
+
+        existing_complaint = db.scalar(select(Complaint).where(Complaint.user_id == student.id).limit(1))
+        if existing_complaint is None:
+            db.add(
+                Complaint(
+                    ticket="CMP-1027",
+                    user_id=student.id,
+                    category="Electrical",
+                    location="C204",
+                    description="Fan not working",
+                    status="Assigned",
+                )
+            )
         db.commit()
 
 
@@ -327,6 +367,60 @@ def me(user: User = Depends(current_user)):
     return serialize_user(user)
 
 
+@app.get("/student/context")
+def student_context(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    if user.role != "student":
+        raise HTTPException(status_code=403, detail="Student profile only")
+    profile = db.scalar(select(StudentProfile).where(StudentProfile.user_id == user.id))
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    return {
+        "student_id": profile.student_id,
+        "name": user.name,
+        "department": user.department,
+        "year": user.year,
+        "section": user.section,
+        "semester": profile.semester,
+        "bus_code": profile.bus_code,
+        "bus_display": "Bus 07" if profile.bus_code == "BUS07" else profile.bus_code,
+        "boarding_stop": profile.boarding_stop,
+        "student_type": "Hosteller" if profile.is_hosteller else "Day Scholar",
+        "is_hosteller": profile.is_hosteller,
+        "attendance_percent": profile.attendance_percent,
+        "cgpa": profile.cgpa,
+        "assignments_due": profile.assignments_due,
+        "placement_eligible": profile.cgpa >= 7.0,
+    }
+
+
+def _student_profile(db: Session, user: User) -> StudentProfile | None:
+    if user.role != "student":
+        return None
+    return db.scalar(select(StudentProfile).where(StudentProfile.user_id == user.id))
+
+
+def _announcement_visible(user: User, profile: StudentProfile | None, audience: str) -> bool:
+    if user.role in {"admin", "faculty"}:
+        return True
+    a = audience.strip().lower()
+    if not a or a == "all campus":
+        return True
+    if "transport" in a:
+        return bool(profile and profile.bus_code)
+    if "bus 07" in a or "bus07" in a:
+        return bool(profile and profile.bus_code == "BUS07")
+    dept_key = user.department.split()[0].lower() if user.department else ""
+    if dept_key and dept_key in a:
+        if "year" in a and f"year {user.year}" not in a:
+            return False
+        if "section" in a and f"section {user.section.lower()}" not in a:
+            return False
+        return True
+    if "placement" in a:
+        return bool(profile and profile.cgpa >= 7.0)
+    return False
+
+
 @app.get("/departments")
 def departments(user: User = Depends(current_user)):
     return [
@@ -356,7 +450,11 @@ def timetable(user: User = Depends(current_user)):
 
 @app.get("/rooms")
 def list_rooms(user: User = Depends(current_user), db: Session = Depends(get_db)):
-    rows = db.scalars(select(Room).order_by(Room.code)).all()
+    stmt = select(Room).order_by(Room.code)
+    if user.role == "student" and user.department:
+        dept_word = user.department.split()[0]
+        stmt = stmt.where(Room.block.ilike(f"%{dept_word}%"))
+    rows = db.scalars(stmt).all()
     return [{"code": r.code, "block": r.block, "available": r.available, "note": r.note} for r in rows]
 
 
@@ -380,6 +478,8 @@ async def update_room(
 @app.get("/announcements")
 def list_announcements(user: User = Depends(current_user), db: Session = Depends(get_db)):
     rows = db.scalars(select(Announcement).order_by(Announcement.created_at.desc()).limit(50)).all()
+    profile = _student_profile(db, user)
+    visible = [r for r in rows if _announcement_visible(user, profile, r.audience)]
     return [
         {
             "id": r.id,
@@ -388,7 +488,7 @@ def list_announcements(user: User = Depends(current_user), db: Session = Depends
             "audience": r.audience,
             "created_at": r.created_at.isoformat(),
         }
-        for r in rows
+        for r in visible
     ]
 
 
@@ -459,6 +559,30 @@ async def update_complaint(
     db.commit()
     await hub.broadcast("complaints.changed")
     return {"ok": True}
+
+
+@app.get("/transport/my")
+def my_transport(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    if user.role != "student":
+        raise HTTPException(status_code=403, detail="Student transport only")
+    profile = _student_profile(db, user)
+    if profile is None or not profile.bus_code:
+        return {"assigned": False}
+    bus = db.scalar(select(Bus).where(Bus.code == profile.bus_code))
+    if bus is None:
+        return {"assigned": False}
+    return {
+        "assigned": True,
+        "code": bus.code,
+        "display": "Bus 07" if bus.code == "BUS07" else bus.code,
+        "route": bus.route,
+        "boarding_stop": profile.boarding_stop,
+        "eta_minutes": bus.eta_minutes,
+        "status": bus.status,
+        "latitude": bus.latitude,
+        "longitude": bus.longitude,
+        "updated_at": bus.updated_at.isoformat(),
+    }
 
 
 @app.get("/transport/BUS07")
