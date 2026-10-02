@@ -37,6 +37,31 @@ class Complaint {
   String status;
 }
 
+class TimetableItem {
+  TimetableItem(this.time, this.subject, this.room, this.faculty);
+  final String time;
+  final String subject;
+  final String room;
+  final String faculty;
+}
+
+class LabItem {
+  LabItem(this.name, this.available, this.total, this.note);
+  final String name;
+  final int available;
+  final int total;
+  final String note;
+}
+
+class EventItem {
+  EventItem(this.id, this.title, this.date, this.seatsLeft, this.registered);
+  final int id;
+  final String title;
+  final String date;
+  int seatsLeft;
+  bool registered;
+}
+
 class CampusStore extends ChangeNotifier {
   CampusStore() {
     _timer = Timer.periodic(const Duration(seconds: 6), (_) {
@@ -80,6 +105,47 @@ class CampusStore extends ChangeNotifier {
 
   final List<Complaint> complaints = [
     Complaint('CMP-1027', 'C204', 'Fan not working', 'Assigned'),
+  ];
+
+  final List<TimetableItem> timetable = [
+    TimetableItem('09:00', 'Engineering Mechanics', 'M201', 'Dr. Ravi'),
+    TimetableItem('09:50', 'Material Science', 'M202', 'Dr. Priya'),
+    TimetableItem('10:40', 'Break', '-', '-'),
+    TimetableItem('11:30', 'Engineering Thermodynamics', 'M204', 'Dr. Kumar'),
+    TimetableItem('12:20', 'CAD Lab', 'CAD LAB 2', 'Mr. Arun'),
+    TimetableItem('13:10', 'Lunch', '-', '-'),
+    TimetableItem('14:00', 'Manufacturing Process', 'M203', 'Dr. Devi'),
+  ];
+
+  final List<LabItem> labs = [
+    LabItem('CAD Lab', 21, 60, ''),
+    LabItem('CAM Lab', 14, 40, ''),
+    LabItem('AI Lab', 42, 60, ''),
+    LabItem('Thermal Lab', 0, 30, 'Scheduled at 2 PM'),
+  ];
+
+  final List<EventItem> events = [
+    EventItem(1, 'EV Design Workshop', 'Oct 04', 42, false),
+    EventItem(2, 'TechFest 2026', 'Oct 12', 113, false),
+    EventItem(3, 'CAD Sprint Challenge', 'Oct 18', 28, false),
+  ];
+
+  String placementCompany = 'Zoho';
+  String placementRole = 'Software Developer';
+  String placementRound = 'Technical';
+  int placementQueue = 7;
+  int placementEta = 24;
+
+  bool libraryOpen = true;
+  String libraryCloses = '20:00';
+  int librarySeats = 182;
+  int libraryTitles = 2340;
+
+  bool canteenOpen = true;
+  List<String> canteenWindows = [
+    'Breakfast 08:00–10:00',
+    'Lunch 12:00–14:30',
+    'Snacks counter open',
   ];
 
   Map<String, String> get _headers => {
@@ -220,8 +286,167 @@ class CampusStore extends ChangeNotifier {
       }
     } catch (_) {}
 
+    try {
+      final response = await _client
+          .get(_uri('/timetable'), headers: _headers)
+          .timeout(const Duration(seconds: 12));
+      if (response.statusCode == 200) {
+        final list = jsonDecode(response.body) as List<dynamic>;
+        timetable
+          ..clear()
+          ..addAll(
+            list.map((raw) {
+              final item = raw as Map<String, dynamic>;
+              return TimetableItem(
+                item['time'].toString(),
+                item['subject'].toString(),
+                item['room'].toString(),
+                item['faculty'].toString(),
+              );
+            }),
+          );
+        anySuccess = true;
+      }
+    } catch (_) {}
+
+    try {
+      final response = await _client
+          .get(_uri('/labs'), headers: _headers)
+          .timeout(const Duration(seconds: 12));
+      if (response.statusCode == 200) {
+        final list = jsonDecode(response.body) as List<dynamic>;
+        labs
+          ..clear()
+          ..addAll(
+            list.map((raw) {
+              final item = raw as Map<String, dynamic>;
+              return LabItem(
+                item['name'].toString(),
+                (item['available'] as num?)?.toInt() ?? 0,
+                (item['total'] as num?)?.toInt() ?? 0,
+                (item['note'] ?? '').toString(),
+              );
+            }),
+          );
+        anySuccess = true;
+      }
+    } catch (_) {}
+
+    try {
+      final response = await _client
+          .get(_uri('/events'), headers: _headers)
+          .timeout(const Duration(seconds: 12));
+      if (response.statusCode == 200) {
+        final list = jsonDecode(response.body) as List<dynamic>;
+        events
+          ..clear()
+          ..addAll(
+            list.map((raw) {
+              final item = raw as Map<String, dynamic>;
+              return EventItem(
+                (item['id'] as num?)?.toInt() ?? 0,
+                item['title'].toString(),
+                item['date'].toString(),
+                (item['seats_left'] as num?)?.toInt() ?? 0,
+                item['registered'] == true,
+              );
+            }),
+          );
+        anySuccess = true;
+      }
+    } catch (_) {}
+
+    try {
+      final response = await _client
+          .get(_uri('/placement'), headers: _headers)
+          .timeout(const Duration(seconds: 12));
+      if (response.statusCode == 200) {
+        final item = jsonDecode(response.body) as Map<String, dynamic>;
+        placementCompany = (item['company'] ?? placementCompany).toString();
+        placementRole = (item['role'] ?? placementRole).toString();
+        placementRound = (item['round'] ?? placementRound).toString();
+        placementQueue = (item['queue'] as num?)?.toInt() ?? placementQueue;
+        placementEta = (item['eta_minutes'] as num?)?.toInt() ?? placementEta;
+        anySuccess = true;
+      }
+    } catch (_) {}
+
+    try {
+      final response = await _client
+          .get(_uri('/library'), headers: _headers)
+          .timeout(const Duration(seconds: 12));
+      if (response.statusCode == 200) {
+        final item = jsonDecode(response.body) as Map<String, dynamic>;
+        libraryOpen = item['open'] == true;
+        libraryCloses = (item['closes'] ?? libraryCloses).toString();
+        librarySeats = (item['seats_available'] as num?)?.toInt() ?? librarySeats;
+        libraryTitles = (item['mechanical_titles'] as num?)?.toInt() ?? libraryTitles;
+        anySuccess = true;
+      }
+    } catch (_) {}
+
+    try {
+      final response = await _client
+          .get(_uri('/canteen'), headers: _headers)
+          .timeout(const Duration(seconds: 12));
+      if (response.statusCode == 200) {
+        final item = jsonDecode(response.body) as Map<String, dynamic>;
+        canteenOpen = item['open'] == true;
+        final windows = item['windows'] as List<dynamic>?;
+        if (windows != null) {
+          canteenWindows = windows.map((e) => e.toString()).toList();
+        }
+        anySuccess = true;
+      }
+    } catch (_) {}
+
     online = anySuccess;
     notifyListeners();
+  }
+
+  void registerEvent(EventItem event) {
+    if (event.registered) return;
+    event.registered = true;
+    if (event.seatsLeft > 0) event.seatsLeft -= 1;
+    notifyListeners();
+    unawaited(_registerEventRemote(event));
+  }
+
+  Future<void> _registerEventRemote(EventItem event) async {
+    if (token == null) return;
+    try {
+      final response = await _client
+          .post(
+            _uri('/events/${event.id}/register'),
+            headers: _headers,
+          )
+          .timeout(const Duration(seconds: 12));
+      online = response.statusCode >= 200 && response.statusCode < 300;
+      if (online) await syncAll();
+    } catch (_) {
+      online = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> sendEmergency(String kind) async {
+    if (token == null) return true;
+    try {
+      final response = await _client
+          .post(
+            _uri('/emergency'),
+            headers: _headers,
+            body: jsonEncode({'kind': kind}),
+          )
+          .timeout(const Duration(seconds: 12));
+      online = response.statusCode >= 200 && response.statusCode < 300;
+      notifyListeners();
+      return online;
+    } catch (_) {
+      online = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   void toggleRoom(RoomState room) {
