@@ -995,41 +995,61 @@ class HomePage extends StatelessWidget {
     return AnimatedBuilder(
       animation: campusStore,
       builder: (context, _) {
+        final next = campusStore.timetable.firstWhere(
+          (item) => item.subject != 'Break' && item.subject != 'Lunch',
+          orElse: () => TimetableItem(
+            '11:30',
+            'Engineering Thermodynamics',
+            'M204',
+            'Dr. Kumar',
+          ),
+        );
+
         return RefreshIndicator(
-          onRefresh: () async =>
-              Future<void>.delayed(const Duration(milliseconds: 350)),
+          onRefresh: campusStore.syncAll,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 110),
             children: [
-              const PageHeader(
-                'Good morning, Vishnu 👋',
-                'Mechanical • Year 2 • Section A',
+              PageHeader(
+                'Good morning, ' + campusStore.userName + ' 👋',
+                campusStore.department +
+                    ' • Year ' +
+                    campusStore.year +
+                    ' • Section ' +
+                    campusStore.section,
               ),
               const SizedBox(height: 18),
               const CampusLiveHero(),
               const SizedBox(height: 14),
+              const SectionTitle('My day'),
+              const SizedBox(height: 10),
               Card(
                 child: InkWell(
                   borderRadius: BorderRadius.circular(22),
                   onTap: () => openModule(context, 'Timetable'),
-                  child: const ListTile(
-                    contentPadding: EdgeInsets.all(16),
-                    leading: CircleAvatar(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    leading: const CircleAvatar(
                       backgroundColor: Color(0xFFECF1FF),
                       foregroundColor: AppColors.blue,
                       child: Icon(Icons.menu_book_rounded),
                     ),
                     title: Text(
-                      'Engineering Thermodynamics',
-                      style: TextStyle(
+                      next.subject,
+                      style: const TextStyle(
                         color: AppColors.navy,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     subtitle: Text(
-                      'Next class • 11:30 AM • M204 • Dr. Kumar',
+                      'Next class • ' +
+                          next.time +
+                          ' • ' +
+                          next.room +
+                          ' • ' +
+                          next.faculty,
                     ),
-                    trailing: Icon(Icons.chevron_right_rounded),
+                    trailing: const Icon(Icons.chevron_right_rounded),
                   ),
                 ),
               ),
@@ -1039,9 +1059,15 @@ class HomePage extends StatelessWidget {
                   Expanded(
                     child: MiniCard(
                       icon: Icons.directions_bus_filled_rounded,
-                      title: 'Bus 07',
-                      value: campusStore.busEta.toString() + ' min',
-                      foot: campusStore.busOnTime ? 'On time' : 'Minor delay',
+                      title: 'My Bus',
+                      value: campusStore.busCode.isEmpty
+                          ? 'Not assigned'
+                          : campusStore.busEta.toString() + ' min',
+                      foot: campusStore.busCode.isEmpty
+                          ? campusStore.studentType
+                          : campusStore.busDisplay +
+                              ' • ' +
+                              campusStore.boardingStop,
                       color: AppColors.blue,
                       onTap: () => openModule(context, 'Transport'),
                     ),
@@ -1049,33 +1075,35 @@ class HomePage extends StatelessWidget {
                   const SizedBox(width: 9),
                   Expanded(
                     child: MiniCard(
-                      icon: Icons.computer_rounded,
-                      title: 'CAD Lab',
-                      value: '21 free',
-                      foot: 'Until 1:15 PM',
+                      icon: Icons.how_to_reg_rounded,
+                      title: 'Attendance',
+                      value: campusStore.attendancePercent.toString() + '%',
+                      foot: campusStore.attendancePercent >= 75
+                          ? 'On track'
+                          : 'Needs attention',
                       color: AppColors.green,
-                      onTap: () => openModule(context, 'Labs'),
+                      onTap: () => openModule(context, 'Attendance'),
                     ),
                   ),
                   const SizedBox(width: 9),
                   Expanded(
                     child: MiniCard(
-                      icon: Icons.local_library_rounded,
-                      title: 'Library',
-                      value: 'Open',
-                      foot: 'Till 8 PM',
-                      color: AppColors.purple,
-                      onTap: () => openModule(context, 'Library'),
+                      icon: Icons.assignment_rounded,
+                      title: 'Assignments',
+                      value: campusStore.assignmentsDue.toString() + ' due',
+                      foot: 'My pending work',
+                      color: AppColors.orange,
+                      onTap: () => openModule(context, 'Assignments'),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 18),
-              const SectionTitle('College quick access'),
+              const SectionTitle('My quick access'),
               const SizedBox(height: 10),
               const CollegeGrid(),
               const SizedBox(height: 18),
-              const SectionTitle('Live college updates'),
+              const SectionTitle('For me'),
               const SizedBox(height: 10),
               Card(
                 child: Column(
@@ -1098,7 +1126,7 @@ class HomePage extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (i < 3)
+                      if (i < campusStore.announcements.length - 1 && i < 3)
                         const Divider(
                           height: 1,
                           indent: 70,
@@ -1109,7 +1137,7 @@ class HomePage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
-              const SectionTitle('Placement'),
+              const SectionTitle('My placement'),
               const SizedBox(height: 10),
               Card(
                 child: ListTile(
@@ -1119,14 +1147,25 @@ class HomePage extends StatelessWidget {
                     foregroundColor: AppColors.purple,
                     child: Icon(Icons.work_rounded),
                   ),
-                  title: const Text(
-                    'Zoho • Software Developer',
-                    style: TextStyle(
+                  title: Text(
+                    campusStore.placementEligible
+                        ? campusStore.placementCompany +
+                            ' • ' +
+                            campusStore.placementRole
+                        : 'Placement eligibility',
+                    style: const TextStyle(
                       color: AppColors.navy,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  subtitle: const Text('Technical round • Queue #7'),
+                  subtitle: Text(
+                    campusStore.placementEligible
+                        ? campusStore.placementRound +
+                            ' round • Queue #' +
+                            campusStore.placementQueue.toString()
+                        : 'Current CGPA ' +
+                            campusStore.cgpa.toStringAsFixed(2),
+                  ),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => openModule(context, 'Placement'),
                 ),
@@ -1298,18 +1337,15 @@ class CollegeGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const items = [
-      ('Departments', Icons.apartment_rounded, AppColors.blue),
-      ('Timetable', Icons.calendar_month_rounded, AppColors.purple),
-      ('Rooms', Icons.meeting_room_rounded, AppColors.green),
-      ('Labs', Icons.computer_rounded, AppColors.cyan),
-      ('Transport', Icons.directions_bus_rounded, AppColors.orange),
-      ('Library', Icons.local_library_rounded, AppColors.blue),
-      ('Canteen', Icons.restaurant_rounded, AppColors.red),
-      ('Placement', Icons.work_rounded, AppColors.purple),
-      ('Events', Icons.event_rounded, AppColors.green),
-      ('Sports', Icons.sports_basketball_rounded, AppColors.orange),
-      ('Hostel', Icons.home_work_rounded, AppColors.cyan),
-      ('Help Desk', Icons.support_agent_rounded, AppColors.red),
+      ('Timetable', Icons.calendar_month_rounded, AppColors.purple, 'Timetable'),
+      ('Attendance', Icons.how_to_reg_rounded, AppColors.green, 'Attendance'),
+      ('Assignments', Icons.assignment_rounded, AppColors.orange, 'Assignments'),
+      ('My Bus', Icons.directions_bus_rounded, AppColors.blue, 'Transport'),
+      ('My Labs', Icons.computer_rounded, AppColors.cyan, 'Labs'),
+      ('Library', Icons.local_library_rounded, AppColors.purple, 'Library'),
+      ('Placement', Icons.work_rounded, AppColors.blue, 'Placement'),
+      ('Events', Icons.event_rounded, AppColors.green, 'Events'),
+      ('Complaints', Icons.build_circle_rounded, AppColors.red, 'Complaints'),
     ];
 
     return GridView.builder(
@@ -1317,21 +1353,21 @@ class CollegeGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: items.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
+        crossAxisCount: 3,
         crossAxisSpacing: 9,
         mainAxisSpacing: 9,
-        childAspectRatio: .82,
+        childAspectRatio: .95,
       ),
       itemBuilder: (_, i) {
         final item = items[i];
         return Card(
           child: InkWell(
             borderRadius: BorderRadius.circular(22),
-            onTap: () => openModule(context, item.$1),
+            onTap: () => openModule(context, item.$4),
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: 5,
-                vertical: 10,
+                horizontal: 7,
+                vertical: 11,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1349,7 +1385,7 @@ class CollegeGrid extends StatelessWidget {
                     maxLines: 2,
                     style: const TextStyle(
                       color: AppColors.navy,
-                      fontSize: 9.5,
+                      fontSize: 10,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -1375,112 +1411,145 @@ class AcademicPage extends StatelessWidget {
       ('Tests & Exams', Icons.quiz_rounded),
       ('Marks', Icons.bar_chart_rounded),
       ('Materials', Icons.folder_copy_rounded),
-      ('Faculty', Icons.people_alt_rounded),
-      ('Labs', Icons.science_rounded),
+      ('My Faculty', Icons.people_alt_rounded),
+      ('My Labs', Icons.science_rounded),
     ];
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 110),
-      children: [
-        const PageHeader(
-          'Academic',
-          'Your department, classes and progress',
-        ),
-        const SizedBox(height: 18),
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: AppColors.navy,
-            borderRadius: BorderRadius.circular(24),
+    return AnimatedBuilder(
+      animation: campusStore,
+      builder: (context, _) => ListView(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 110),
+        children: [
+          const PageHeader(
+            'My Academic',
+            'Only your course, section and semester',
           ),
-          child: const Row(
-            children: [
-              CircleAvatar(
-                radius: 27,
-                backgroundColor: Color(0xFF28457E),
-                child: Icon(
-                  Icons.precision_manufacturing_rounded,
-                  color: Colors.white,
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppColors.navy,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Row(
+              children: [
+                const CircleAvatar(
+                  radius: 27,
+                  backgroundColor: Color(0xFF28457E),
+                  child: Icon(
+                    Icons.precision_manufacturing_rounded,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Mechanical Engineering',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'B.E. • Year 2 • Section A • Semester 3',
-                      style: TextStyle(
-                        color: Colors.white60,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        const SectionTitle('My academic'),
-        const SizedBox(height: 10),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: items.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 1.55,
-          ),
-          itemBuilder: (_, i) {
-            final item = items[i];
-            return Card(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(22),
-                onTap: () => openModule(context, item.$1),
-                child: Padding(
-                  padding: const EdgeInsets.all(13),
-                  child: Row(
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(
-                        backgroundColor: const Color(0xFFECF1FF),
-                        foregroundColor: AppColors.blue,
-                        child: Icon(item.$2, size: 19),
+                      Text(
+                        campusStore.department,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          item.$1,
-                          style: const TextStyle(
-                            color: AppColors.navy,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w900,
-                          ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Year ' +
+                            campusStore.year +
+                            ' • Section ' +
+                            campusStore.section +
+                            ' • Semester ' +
+                            campusStore.semester,
+                        style: const TextStyle(
+                          color: Colors.white60,
+                          fontSize: 11,
                         ),
                       ),
                     ],
                   ),
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          const SectionTitle('My academic tools'),
+          const SizedBox(height: 10),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: items.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 1.55,
+            ),
+            itemBuilder: (_, i) {
+              final item = items[i];
+              final route = item.$1 == 'My Faculty'
+                  ? 'Faculty'
+                  : item.$1 == 'My Labs'
+                      ? 'Labs'
+                      : item.$1;
+              return Card(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(22),
+                  onTap: () => openModule(context, route),
+                  child: Padding(
+                    padding: const EdgeInsets.all(13),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: const Color(0xFFECF1FF),
+                          foregroundColor: AppColors.blue,
+                          child: Icon(item.$2, size: 19),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            item.$1,
+                            style: const TextStyle(
+                              color: AppColors.navy,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 18),
+          Card(
+            child: ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Color(0xFFEEF2FF),
+                foregroundColor: AppColors.blue,
+                child: Icon(Icons.insights_rounded),
               ),
-            );
-          },
-        ),
-        const SizedBox(height: 18),
-        const SectionTitle('All departments'),
-        const SizedBox(height: 10),
-        const DepartmentList(),
-      ],
+              title: Text(
+                'Attendance ' +
+                    campusStore.attendancePercent.toString() +
+                    '% • CGPA ' +
+                    campusStore.cgpa.toStringAsFixed(2),
+                style: const TextStyle(
+                  color: AppColors.navy,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              subtitle: Text(
+                campusStore.assignmentsDue.toString() +
+                    ' assignments pending',
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
