@@ -9,7 +9,7 @@ on:
       - ".github/workflows/campuslive-flutter-mobile.yml"
   push:
     branches:
-      - campuslive-flutter-mobile-build
+      - campuslive-fullstack
     paths:
       - "campuslive_flutter/**"
       - ".github/workflows/campuslive-flutter-mobile.yml"
@@ -46,6 +46,17 @@ jobs:
           cp /tmp/campuslive_pubspec.yaml pubspec.yaml
           cp /tmp/campuslive_analysis.yaml analysis_options.yaml
           rm -f test/widget_test.dart
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
+          permission = '<uses-permission android:name="android.permission.INTERNET"/>'
+          if permission not in s:
+              s = s.replace("<manifest", "<manifest", 1)
+              pos = s.find(">")
+              s = s[:pos+1] + "\n    " + permission + s[pos+1:]
+              p.write_text(s)
+          PY
           flutter pub get
 
       - name: Analyze
