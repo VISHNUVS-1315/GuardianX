@@ -1612,8 +1612,8 @@ class CampusPage extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 110),
           children: [
             const PageHeader(
-              'Campus',
-              'Rooms, labs, buildings and transport',
+              'My Campus',
+              'Useful spaces and services around your day',
             ),
             const SizedBox(height: 18),
             Container(
@@ -1661,7 +1661,7 @@ class CampusPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 18),
-            const SectionTitle('Live rooms'),
+            const SectionTitle('Rooms for my department'),
             const SizedBox(height: 10),
             for (final room in campusStore.rooms.take(4))
               Card(
@@ -1711,19 +1711,23 @@ class CampusPage extends StatelessWidget {
                     child: Icon(Icons.directions_bus_filled),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'BUS 07 • Udumalpet Route',
-                          style: TextStyle(
+                          campusStore.busCode.isEmpty
+                              ? 'No bus assigned'
+                              : campusStore.busDisplay +
+                                  ' • ' +
+                                  campusStore.boardingStop,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                        Text(
-                          'Live demo route status',
+                        const Text(
+                          'My transport status',
                           style: TextStyle(
                             color: Colors.white60,
                             fontSize: 10,
