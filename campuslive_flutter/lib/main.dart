@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,17 +39,28 @@ class Complaint {
 
 class CampusStore extends ChangeNotifier {
   CampusStore() {
-    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
-      busEta -= 1;
-      if (busEta < 3) {
-        busEta = 8;
-        busOnTime = !busOnTime;
+    _timer = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (token != null) {
+        unawaited(syncAll());
+      } else if (role != null) {
+        busEta -= 1;
+        if (busEta < 3) {
+          busEta = 8;
+          busOnTime = !busOnTime;
+        }
+        notifyListeners();
       }
-      notifyListeners();
     });
   }
 
+  static const apiBase = 'https://campuslive-fullstack-api.onrender.com';
+  final http.Client _client = http.Client();
   late final Timer _timer;
+
+  String? token;
+  String? role;
+  String userName = 'Vishnu S';
+  bool online = false;
   int busEta = 8;
   bool busOnTime = true;
 
@@ -69,28 +82,237 @@ class CampusStore extends ChangeNotifier {
     Complaint('CMP-1027', 'C204', 'Fan not working', 'Assigned'),
   ];
 
+  Map<String, String> get _headers => {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+
+  Uri _uri(String path) => Uri.parse('$apiBase$path');
+
+  Future<bool> login(
+    String email,
+    String password, {
+    required String expectedRole,
+  }) async {
+    try {
+      final response = await _client
+          .post(
+            _uri('/auth/login'),
+            headers: const {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email.trim(), 'password': password}),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (response.statusCode != 200) {
+        return false;
+      }
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final user = data['user'] as Map<String, dynamic>;
+      final serverRole = (user['role'] ?? '').toString();
+
+      if (serverRole != expectedRole) {
+        return false;
+      }
+
+      token = data['token'].toString();
+      role = serverRole;
+      userName = (user['name'] ?? 'CampusLive User').toString();
+      online = true;
+      notifyListeners();
+      await syncAll();
+      return true;
+    } catch (_) {
+      final fallbackEmail = expectedRole == 'admin'
+          ? 'admin@campuslive.demo'
+          : 'student@campuslive.demo';
+      if (email.trim() == fallbackEmail && password == 'Campus@123') {
+        token = null;
+        role = expectedRole;
+        online = false;
+        notifyListeners();
+        return true;
+      }
+      return false;
+    }
+  }
+
+  Future<void> syncAll() async {
+    if (token == null) return;
+    var anySuccess = false;
+
+    try {
+      final response = await _client
+          .get(_uri('/rooms'), headers: _headers)
+          .timeout(const Duration(seconds: 12));
+      if (response.statusCode == 200) {
+        final list = jsonDecode(response.body) as List<dynamic>;
+        rooms
+          ..clear()
+          ..addAll(
+            list.map((raw) {
+              final item = raw as Map<String, dynamic>;
+              return RoomState(
+                item['code'].toString(),
+                item['block'].toString(),
+                item['available'] == true,
+                item['note'].toString(),
+              );
+            }),
+          );
+        anySuccess = true;
+      }
+    } catch (_) {}
+
+    try {
+      final response = await _client
+          .get(_uri('/announcements'), headers: _headers)
+          .timeout(const Duration(seconds: 12));
+      if (response.statusCode == 200) {
+        final list = jsonDecode(response.body) as List<dynamic>;
+        announcements
+          ..clear()
+          ..addAll(
+            list.map((raw) {
+              final item = raw as Map<String, dynamic>;
+              final title = (item['title'] ?? '').toString();
+              final message = (item['message'] ?? '').toString();
+              return title.isEmpty ? message : '$title: $message';
+            }),
+          );
+        anySuccess = true;
+      }
+    } catch (_) {}
+
+    try {
+      final response = await _client
+          .get(_uri('/complaints'), headers: _headers)
+          .timeout(const Duration(seconds: 12));
+      if (response.statusCode == 200) {
+        final list = jsonDecode(response.body) as List<dynamic>;
+        complaints
+          ..clear()
+          ..addAll(
+            list.map((raw) {
+              final item = raw as Map<String, dynamic>;
+              return Complaint(
+                item['ticket'].toString(),
+                item['location'].toString(),
+                item['description'].toString(),
+                item['status'].toString(),
+              );
+            }),
+          );
+        anySuccess = true;
+      }
+    } catch (_) {}
+
+    try {
+      final response = await _client
+          .get(_uri('/transport/BUS07'), headers: _headers)
+          .timeout(const Duration(seconds: 12));
+      if (response.statusCode == 200) {
+        final item = jsonDecode(response.body) as Map<String, dynamic>;
+        busEta = (item['eta_minutes'] as num?)?.toInt() ?? busEta;
+        final status = (item['status'] ?? 'On time').toString().toLowerCase();
+        busOnTime = !status.contains('delay');
+        anySuccess = true;
+      }
+    } catch (_) {}
+
+    online = anySuccess;
+    notifyListeners();
+  }
+
   void toggleRoom(RoomState room) {
     room.available = !room.available;
     room.note = room.available ? 'Available now' : 'Marked occupied by admin';
+    notifyListeners();
+    unawaited(_patchRoom(room));
+  }
+
+  Future<void> _patchRoom(RoomState room) async {
+    if (token == null) return;
+    try {
+      final response = await _client
+          .patch(
+            _uri('/rooms/${Uri.encodeComponent(room.name)}'),
+            headers: _headers,
+            body: jsonEncode({
+              'available': room.available,
+              'note': room.note,
+            }),
+          )
+          .timeout(const Duration(seconds: 12));
+      online = response.statusCode >= 200 && response.statusCode < 300;
+    } catch (_) {
+      online = false;
+    }
     notifyListeners();
   }
 
   void broadcast(String message) {
     announcements.insert(0, message);
     notifyListeners();
+    unawaited(_sendBroadcast(message));
+  }
+
+  Future<void> _sendBroadcast(String message) async {
+    if (token == null) return;
+    try {
+      final response = await _client
+          .post(
+            _uri('/announcements'),
+            headers: _headers,
+            body: jsonEncode({
+              'title': 'Admin broadcast',
+              'message': message,
+              'audience': 'All campus',
+            }),
+          )
+          .timeout(const Duration(seconds: 12));
+      online = response.statusCode >= 200 && response.statusCode < 300;
+      if (online) await syncAll();
+    } catch (_) {
+      online = false;
+      notifyListeners();
+    }
   }
 
   void addComplaint(String place, String issue) {
     complaints.insert(
       0,
       Complaint(
-        'CMP-' + (1100 + complaints.length).toString(),
+        'SYNCING',
         place,
         issue,
         'Reported',
       ),
     );
     notifyListeners();
+    unawaited(_sendComplaint(place, issue));
+  }
+
+  Future<void> _sendComplaint(String place, String issue) async {
+    if (token == null) return;
+    try {
+      final response = await _client
+          .post(
+            _uri('/complaints'),
+            headers: _headers,
+            body: jsonEncode({
+              'category': 'General',
+              'location': place,
+              'description': issue,
+            }),
+          )
+          .timeout(const Duration(seconds: 12));
+      online = response.statusCode >= 200 && response.statusCode < 300;
+      if (online) await syncAll();
+    } catch (_) {
+      online = false;
+      notifyListeners();
+    }
   }
 
   void advanceComplaint(Complaint complaint) {
@@ -99,12 +321,31 @@ class CampusStore extends ChangeNotifier {
     if (current >= 0 && current < states.length - 1) {
       complaint.status = states[current + 1];
       notifyListeners();
+      unawaited(_patchComplaint(complaint));
     }
+  }
+
+  Future<void> _patchComplaint(Complaint complaint) async {
+    if (token == null || complaint.id == 'SYNCING') return;
+    try {
+      final response = await _client
+          .patch(
+            _uri('/complaints/${Uri.encodeComponent(complaint.id)}'),
+            headers: _headers,
+            body: jsonEncode({'status': complaint.status}),
+          )
+          .timeout(const Duration(seconds: 12));
+      online = response.statusCode >= 200 && response.statusCode < 300;
+    } catch (_) {
+      online = false;
+    }
+    notifyListeners();
   }
 
   @override
   void dispose() {
     _timer.cancel();
+    _client.close();
     super.dispose();
   }
 }
@@ -164,13 +405,16 @@ class _LoginPageState extends State<LoginPage> {
       loading = true;
       error = null;
     });
-    await Future<void>.delayed(const Duration(milliseconds: 350));
-    final expected = admin
-        ? 'admin@campuslive.demo'
-        : 'student@campuslive.demo';
-    if (idController.text.trim() == expected &&
-        passwordController.text == 'Campus@123') {
-      if (!mounted) return;
+
+    final ok = await campusStore.login(
+      idController.text,
+      passwordController.text,
+      expectedRole: admin ? 'admin' : 'student',
+    );
+
+    if (!mounted) return;
+
+    if (ok) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -178,8 +422,11 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
     } else {
-      setState(() => error = 'Use the demo credentials shown below.');
+      setState(() {
+        error = 'Login failed. Check credentials or network.';
+      });
     }
+
     if (mounted) setState(() => loading = false);
   }
 
