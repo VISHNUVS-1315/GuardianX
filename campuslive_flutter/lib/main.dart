@@ -1942,54 +1942,45 @@ class TimetablePage extends StatelessWidget {
   const TimetablePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    const rows = [
-      ('09:00', 'Engineering Mechanics', 'M201'),
-      ('09:50', 'Material Science', 'M202'),
-      ('10:40', 'Break', '-'),
-      ('11:30', 'Engineering Thermodynamics', 'M204'),
-      ('12:20', 'CAD Lab', 'CAD LAB 2'),
-      ('01:10', 'Lunch', '-'),
-      ('02:00', 'Manufacturing Process', 'M203'),
-    ];
-
-    return Scaffold(
-      appBar: moduleAppBar('Timetable'),
-      body: ListView(
-        padding: const EdgeInsets.all(18),
-        children: [
-          const ModuleHero(
-            Icons.calendar_month_rounded,
-            'Wednesday',
-            'Semester 3 • Today',
-            AppColors.blue,
-          ),
-          const SizedBox(height: 14),
-          for (final row in rows)
-            Card(
-              margin: const EdgeInsets.only(bottom: 9),
-              child: ListTile(
-                leading: Text(
-                  row.$1,
-                  style: const TextStyle(
-                    color: AppColors.blue,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                title: Text(
-                  row.$2,
-                  style: const TextStyle(
-                    color: AppColors.navy,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                subtitle: Text(row.$3),
+  Widget build(BuildContext context) => Scaffold(
+        appBar: moduleAppBar('Timetable'),
+        body: AnimatedBuilder(
+          animation: campusStore,
+          builder: (context, _) => ListView(
+            padding: const EdgeInsets.all(18),
+            children: [
+              ModuleHero(
+                Icons.calendar_month_rounded,
+                campusStore.online ? 'Live timetable' : 'Offline timetable',
+                'Semester 3 • Today',
+                AppColors.blue,
               ),
-            ),
-        ],
-      ),
-    );
-  }
+              const SizedBox(height: 14),
+              for (final row in campusStore.timetable)
+                Card(
+                  margin: const EdgeInsets.only(bottom: 9),
+                  child: ListTile(
+                    leading: Text(
+                      row.time,
+                      style: const TextStyle(
+                        color: AppColors.blue,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    title: Text(
+                      row.subject,
+                      style: const TextStyle(
+                        color: AppColors.navy,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    subtitle: Text(row.room + ' • ' + row.faculty),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
 }
 
 class RoomsPage extends StatelessWidget {
@@ -2093,21 +2084,28 @@ class PlacementPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: moduleAppBar('Placement'),
-        body: ListView(
-          padding: const EdgeInsets.all(18),
-          children: [
-            const ModuleHero(
-              Icons.work_rounded,
-              'Zoho',
-              'Software Developer • Technical Round',
-              AppColors.purple,
-            ),
-            const SizedBox(height: 14),
-            const StageTile('Aptitude', 'Qualified', true),
-            const StageTile('Coding', 'Qualified', true),
-            const StageTile('Technical', 'Queue #7 • approx 24 min', false),
-            const StageTile('HR', 'Not started', false),
-          ],
+        body: AnimatedBuilder(
+          animation: campusStore,
+          builder: (context, _) => ListView(
+            padding: const EdgeInsets.all(18),
+            children: [
+              ModuleHero(
+                Icons.work_rounded,
+                campusStore.placementCompany,
+                campusStore.placementRole + ' • ' + campusStore.placementRound + ' Round',
+                AppColors.purple,
+              ),
+              const SizedBox(height: 14),
+              const StageTile('Aptitude', 'Qualified', true),
+              const StageTile('Coding', 'Qualified', true),
+              StageTile(
+                'Technical',
+                'Queue #${campusStore.placementQueue} • approx ${campusStore.placementEta} min',
+                false,
+              ),
+              const StageTile('HR', 'Not started', false),
+            ],
+          ),
         ),
       );
 }
@@ -2141,64 +2139,49 @@ class StageTile extends StatelessWidget {
       );
 }
 
-class EventsPage extends StatefulWidget {
+class EventsPage extends StatelessWidget {
   const EventsPage({super.key});
 
   @override
-  State<EventsPage> createState() => _EventsPageState();
-}
-
-class _EventsPageState extends State<EventsPage> {
-  final Set<int> registered = {};
-
-  @override
-  Widget build(BuildContext context) {
-    const events = [
-      ('EV Design Workshop', 'Oct 04 • 42 seats left'),
-      ('TechFest 2026', 'Oct 12 • 113 seats left'),
-      ('CAD Sprint Challenge', 'Oct 18 • 28 seats left'),
-    ];
-
-    return Scaffold(
-      appBar: moduleAppBar('Events'),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(18),
-        itemCount: events.length,
-        itemBuilder: (_, i) => Card(
-          margin: const EdgeInsets.only(bottom: 10),
-          child: ListTile(
-            leading: const CircleAvatar(
-              backgroundColor: Color(0xFFEAF9F1),
-              foregroundColor: AppColors.green,
-              child: Icon(Icons.event_rounded),
-            ),
-            title: Text(
-              events[i].$1,
-              style: const TextStyle(
-                color: AppColors.navy,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            subtitle: Text(events[i].$2),
-            trailing: FilledButton.tonal(
-              onPressed: () {
-                setState(() {
-                  if (registered.contains(i)) {
-                    registered.remove(i);
-                  } else {
-                    registered.add(i);
-                  }
-                });
-              },
-              child: Text(
-                registered.contains(i) ? 'Joined' : 'Register',
-              ),
-            ),
+  Widget build(BuildContext context) => Scaffold(
+        appBar: moduleAppBar('Events'),
+        body: AnimatedBuilder(
+          animation: campusStore,
+          builder: (context, _) => ListView.builder(
+            padding: const EdgeInsets.all(18),
+            itemCount: campusStore.events.length,
+            itemBuilder: (_, i) {
+              final event = campusStore.events[i];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 10),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0xFFEAF9F1),
+                    foregroundColor: AppColors.green,
+                    child: Icon(Icons.event_rounded),
+                  ),
+                  title: Text(
+                    event.title,
+                    style: const TextStyle(
+                      color: AppColors.navy,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  subtitle: Text(
+                    event.date + ' • ' + event.seatsLeft.toString() + ' seats left',
+                  ),
+                  trailing: FilledButton.tonal(
+                    onPressed: event.registered
+                        ? null
+                        : () => campusStore.registerEvent(event),
+                    child: Text(event.registered ? 'Joined' : 'Register'),
+                  ),
+                ),
+              );
+            },
           ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class ComplaintsPage extends StatefulWidget {
@@ -2257,16 +2240,40 @@ class _ComplaintsPageState extends State<ComplaintsPage> {
 class EmergencyPage extends StatelessWidget {
   const EmergencyPage({super.key});
 
+  Future<void> request(BuildContext context, String label) async {
+    final sent = await campusStore.sendEmergency(label);
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(sent ? 'Emergency acknowledged' : 'Offline fallback'),
+        content: Text(
+          sent
+              ? label + ' request was recorded by CampusLive backend.'
+              : 'Backend is temporarily unavailable. Use the college emergency contact directly for a real emergency.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: moduleAppBar('Emergency'),
         body: ListView(
           padding: const EdgeInsets.all(18),
           children: [
-            const ModuleHero(
+            ModuleHero(
               Icons.emergency_rounded,
               'Campus Emergency',
-              'Demo only — no external calls are made',
+              campusStore.online
+                  ? 'Connected to CampusLive backend'
+                  : 'Offline fallback — use official emergency channels for real incidents',
               AppColors.red,
             ),
             const SizedBox(height: 14),
@@ -2290,19 +2297,7 @@ class EmergencyPage extends StatelessWidget {
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.red,
                     ),
-                    onPressed: () => showDialog<void>(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text('Demo emergency'),
-                        content: Text(label + ' request acknowledged locally.'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('OK'),
-                          ),
-                        ],
-                      ),
-                    ),
+                    onPressed: () => request(context, label),
                     child: const Text('Request'),
                   ),
                 ),
@@ -2373,27 +2368,29 @@ List<String> genericRows(String title) {
     ];
   }
   if (title == 'Labs') {
-    return [
-      'CAD Lab — 21 systems available',
-      'CAM Lab — 14 systems available',
-      'AI Lab — 42 systems available',
-      'Thermal Lab — Scheduled at 2 PM',
-    ];
+    return campusStore.labs.map((lab) {
+      final suffix = lab.note.isEmpty ? '' : ' • ' + lab.note;
+      return lab.name +
+          ' — ' +
+          lab.available.toString() +
+          '/' +
+          lab.total.toString() +
+          ' available' +
+          suffix;
+    }).toList();
   }
   if (title == 'Library') {
     return [
-      'Open until 8:00 PM',
-      '182 seats currently available',
-      'Mechanical books — 2,340 titles',
-      'Digital library — Available',
+      campusStore.libraryOpen ? 'Library — Open' : 'Library — Closed',
+      'Closes at ' + campusStore.libraryCloses,
+      campusStore.librarySeats.toString() + ' seats currently available',
+      'Mechanical books — ' + campusStore.libraryTitles.toString() + ' titles',
     ];
   }
   if (title == 'Canteen') {
     return [
-      'Main canteen — Open',
-      'Breakfast — 8:00 to 10:00 AM',
-      'Lunch — 12:00 to 2:30 PM',
-      'Snacks counter — Open',
+      campusStore.canteenOpen ? 'Main canteen — Open' : 'Main canteen — Closed',
+      ...campusStore.canteenWindows,
     ];
   }
   return [
