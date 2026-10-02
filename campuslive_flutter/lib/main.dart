@@ -86,6 +86,22 @@ class CampusStore extends ChangeNotifier {
   String? role;
   String userName = 'Vishnu S';
   bool online = false;
+
+  String studentId = '25ME103';
+  String department = 'Mechanical Engineering';
+  String year = '2';
+  String section = 'A';
+  String semester = '3';
+  String busCode = 'BUS07';
+  String busDisplay = 'Bus 07';
+  String boardingStop = 'Udumalpet Bus Stand';
+  String studentType = 'Day Scholar';
+  bool isHosteller = false;
+  int attendancePercent = 86;
+  double cgpa = 7.64;
+  int assignmentsDue = 3;
+  bool placementEligible = true;
+
   int busEta = 8;
   bool busOnTime = true;
 
@@ -207,6 +223,35 @@ class CampusStore extends ChangeNotifier {
     if (token == null) return;
     var anySuccess = false;
 
+    if (role == 'student') {
+      try {
+        final response = await _client
+            .get(_uri('/student/context'), headers: _headers)
+            .timeout(const Duration(seconds: 12));
+        if (response.statusCode == 200) {
+          final item = jsonDecode(response.body) as Map<String, dynamic>;
+          studentId = (item['student_id'] ?? studentId).toString();
+          userName = (item['name'] ?? userName).toString();
+          department = (item['department'] ?? department).toString();
+          year = (item['year'] ?? year).toString();
+          section = (item['section'] ?? section).toString();
+          semester = (item['semester'] ?? semester).toString();
+          busCode = (item['bus_code'] ?? busCode).toString();
+          busDisplay = (item['bus_display'] ?? busDisplay).toString();
+          boardingStop = (item['boarding_stop'] ?? boardingStop).toString();
+          studentType = (item['student_type'] ?? studentType).toString();
+          isHosteller = item['is_hosteller'] == true;
+          attendancePercent =
+              (item['attendance_percent'] as num?)?.toInt() ?? attendancePercent;
+          cgpa = (item['cgpa'] as num?)?.toDouble() ?? cgpa;
+          assignmentsDue =
+              (item['assignments_due'] as num?)?.toInt() ?? assignmentsDue;
+          placementEligible = item['placement_eligible'] == true;
+          anySuccess = true;
+        }
+      } catch (_) {}
+    }
+
     try {
       final response = await _client
           .get(_uri('/rooms'), headers: _headers)
@@ -275,13 +320,22 @@ class CampusStore extends ChangeNotifier {
 
     try {
       final response = await _client
-          .get(_uri('/transport/BUS07'), headers: _headers)
+          .get(_uri(role == 'student' ? '/transport/my' : '/transport/BUS07'), headers: _headers)
           .timeout(const Duration(seconds: 12));
       if (response.statusCode == 200) {
         final item = jsonDecode(response.body) as Map<String, dynamic>;
-        busEta = (item['eta_minutes'] as num?)?.toInt() ?? busEta;
-        final status = (item['status'] ?? 'On time').toString().toLowerCase();
-        busOnTime = !status.contains('delay');
+        if (item['assigned'] != false) {
+          busCode = (item['code'] ?? busCode).toString();
+          busDisplay = (item['display'] ?? busDisplay).toString();
+          boardingStop = (item['boarding_stop'] ?? boardingStop).toString();
+          busEta = (item['eta_minutes'] as num?)?.toInt() ?? busEta;
+          final status = (item['status'] ?? 'On time').toString().toLowerCase();
+          busOnTime = !status.contains('delay');
+        } else if (role == 'student') {
+          busCode = '';
+          busDisplay = 'No bus assigned';
+          boardingStop = '-';
+        }
         anySuccess = true;
       }
     } catch (_) {}
