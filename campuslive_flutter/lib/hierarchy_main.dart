@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -44,6 +45,8 @@ class AppState extends ChangeNotifier{
   Map<String,dynamic> dashboard={};
   bool busy=false,online=false;
   Timer? timer;
+  WebSocket? socket;
+  StreamSubscription<dynamic>? socketSubscription;
 
   Map<String,String> get h=>{'Content-Type':'application/json',if(token!=null)'Authorization':'Bearer '+token!};
 
@@ -73,7 +76,7 @@ class AppState extends ChangeNotifier{
       }) as Map<String,dynamic>;
       token=j['token'].toString();me=j['user'] as Map<String,dynamic>;
       await refresh();
-      startPolling();
+      startRealtime();
     }finally{busy=false;notifyListeners();}
   }
 
@@ -85,13 +88,47 @@ class AppState extends ChangeNotifier{
         'admin_email':email.trim(),'admin_password':pass
       }) as Map<String,dynamic>;
       token=j['token'].toString();me=j['user'] as Map<String,dynamic>;
-      await refresh();startPolling();
+      await refresh();startRealtime();
     }finally{busy=false;notifyListeners();}
   }
 
-  void startPolling(){
+  Future<void> startRealtime() async {
     timer?.cancel();
-    timer=Timer.periodic(const Duration(seconds:5),(_){refresh();});
+    await socketSubscription?.cancel();
+    await socket?.close();
+    socketSubscription = null;
+    socket = null;
+
+    if (token == null) return;
+
+    try {
+      final wsBase = api
+          .replaceFirst('https://', 'wss://')
+          .replaceFirst('http://', 'ws://');
+      socket = await WebSocket.connect(
+        '$wsBase/ws?token=${Uri.encodeComponent(token!)}',
+      );
+      socket!.pingInterval = const Duration(seconds: 20);
+      socketSubscription = socket!.listen(
+        (_) => unawaited(refresh()),
+        onError: (_) {
+          online = false;
+          notifyListeners();
+        },
+        onDone: () {
+          online = false;
+          notifyListeners();
+        },
+      );
+    } catch (_) {
+      online = false;
+      notifyListeners();
+    }
+
+    timer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => unawaited(refresh()),
+    );
   }
 
   Future<void> refresh()async{
@@ -146,7 +183,7 @@ class AppState extends ChangeNotifier{
   }
 
   void logout(){
-    timer?.cancel();token=null;me=null;portal=[];directory=[];inbox=[];departments=[];audit=[];dashboard={};online=false;notifyListeners();
+    timer?.cancel();socketSubscription?.cancel();socket?.close();socketSubscription=null;socket=null;token=null;me=null;portal=[];directory=[];inbox=[];departments=[];audit=[];dashboard={};online=false;notifyListeners();
   }
 }
 
