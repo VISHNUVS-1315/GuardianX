@@ -3566,56 +3566,598 @@ class _AdminBroadcastPageState extends State<AdminBroadcastPage> {
       );
 }
 
-class AdminProfilePage extends StatelessWidget {
-  const AdminProfilePage({super.key});
+class AdminDepartmentsPage extends StatefulWidget {
+  const AdminDepartmentsPage({super.key});
 
   @override
-  Widget build(BuildContext context) => ListView(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 90),
-        children: [
-          const PageHeader(
-            'Admin',
-            'System access and college setup',
-          ),
-          const SizedBox(height: 18),
-          for (final item in const [
-            ('College master data', Icons.account_tree_outlined),
-            ('Departments', Icons.apartment_outlined),
-            ('Students & Faculty', Icons.groups_outlined),
-            ('Data imports', Icons.upload_file_outlined),
-            ('Roles & permissions', Icons.security_outlined),
-            ('Audit log', Icons.history_rounded),
-            ('Reports & analytics', Icons.analytics_outlined),
-          ])
-            Card(
-              margin: const EdgeInsets.only(bottom: 9),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: const Color(0xFFEEF2FF),
-                  foregroundColor: AppColors.blue,
-                  child: Icon(item.$2),
+  State<AdminDepartmentsPage> createState() => _AdminDepartmentsPageState();
+}
+
+class _AdminDepartmentsPageState extends State<AdminDepartmentsPage> {
+  String query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: moduleAppBar('Departments'),
+      body: AnimatedBuilder(
+        animation: campusStore,
+        builder: (context, _) {
+          final departments = campusStore.adminDepartments.where((dept) {
+            final q = query.trim().toLowerCase();
+            if (q.isEmpty) return true;
+            return dept.name.toLowerCase().contains(q) ||
+                dept.code.toLowerCase().contains(q) ||
+                dept.hod.name.toLowerCase().contains(q);
+          }).toList();
+
+          return RefreshIndicator(
+            onRefresh: campusStore.syncAll,
+            child: ListView(
+              padding: const EdgeInsets.all(18),
+              children: [
+                const ModuleHero(
+                  Icons.apartment_rounded,
+                  'Department Directory',
+                  'HOD and staff directory for every department',
+                  AppColors.blue,
                 ),
-                title: Text(
-                  item.$1,
-                  style: const TextStyle(
-                    color: AppColors.navy,
-                    fontWeight: FontWeight.w900,
+                const SizedBox(height: 14),
+                TextField(
+                  onChanged: (value) => setState(() => query = value),
+                  decoration: const InputDecoration(
+                    hintText: 'Search department or HOD...',
+                    prefixIcon: Icon(Icons.search_rounded),
                   ),
                 ),
-                trailing: const Icon(Icons.chevron_right_rounded),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DirectoryMetric(
+                        value: campusStore.adminDepartments.length.toString(),
+                        label: 'Departments',
+                        icon: Icons.apartment_rounded,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _DirectoryMetric(
+                        value: campusStore.adminDepartments
+                            .fold<int>(
+                              0,
+                              (sum, dept) => sum + dept.staff.length + 1,
+                            )
+                            .toString(),
+                        label: 'HOD + Staff',
+                        icon: Icons.groups_rounded,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                const SectionTitle('All departments'),
+                const SizedBox(height: 10),
+                for (final dept in departments)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(22),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AdminDepartmentDetailPage(
+                            department: dept,
+                          ),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(15),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 52,
+                              height: 52,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEEF2FF),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                dept.code,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: AppColors.blue,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 13),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    dept.name,
+                                    style: const TextStyle(
+                                      color: AppColors.navy,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 13.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'HOD: ' + dept.hod.name,
+                                    style: const TextStyle(
+                                      color: AppColors.muted,
+                                      fontSize: 10.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    dept.block +
+                                        ' • ' +
+                                        dept.staff.length.toString() +
+                                        ' staff',
+                                    style: const TextStyle(
+                                      color: AppColors.blue,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right_rounded),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _DirectoryMetric extends StatelessWidget {
+  const _DirectoryMetric({
+    required this.value,
+    required this.label,
+    required this.icon,
+  });
+
+  final String value;
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: const Color(0xFFEEF2FF),
+                foregroundColor: AppColors.blue,
+                child: Icon(icon, size: 19),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      color: AppColors.navy,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class AdminDepartmentDetailPage extends StatelessWidget {
+  const AdminDepartmentDetailPage({
+    super.key,
+    required this.department,
+  });
+
+  final DepartmentDirectory department;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: moduleAppBar(department.code + ' Department'),
+        body: ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.navy, Color(0xFF1C3A7C)],
+                ),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 58,
+                    height: 58,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(.12),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Text(
+                      department.code,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          department.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          department.block +
+                              ' • ' +
+                              department.staff.length.toString() +
+                              ' teaching staff',
+                          style: const TextStyle(
+                            color: Colors.white60,
+                            fontSize: 10.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: () => logout(context),
-            icon: const Icon(Icons.logout_rounded),
-            label: const Text('Logout Admin'),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
+            const SizedBox(height: 18),
+            const SectionTitle('Head of Department'),
+            const SizedBox(height: 10),
+            _StaffCard(
+              staff: department.hod,
+              isHod: true,
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                const Expanded(
+                  child: SectionTitle('Department Staff'),
+                ),
+                Chip(
+                  side: BorderSide.none,
+                  backgroundColor: const Color(0xFFEEF2FF),
+                  label: Text(
+                    department.staff.length.toString() + ' staff',
+                    style: const TextStyle(
+                      color: AppColors.blue,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            for (final staff in department.staff)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _StaffCard(staff: staff),
+              ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8E8),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: AppColors.orange,
+                    size: 19,
+                  ),
+                  SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      'Current names/contact details are demo directory data. Replace them with verified college staff records before real deployment.',
+                      style: TextStyle(
+                        color: AppColors.navy,
+                        fontSize: 10.5,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _StaffCard extends StatelessWidget {
+  const _StaffCard({
+    required this.staff,
+    this.isHod = false,
+  });
+
+  final StaffMember staff;
+  final bool isHod;
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 25,
+                    backgroundColor:
+                        isHod ? AppColors.navy : const Color(0xFFEEF2FF),
+                    foregroundColor:
+                        isHod ? Colors.white : AppColors.blue,
+                    child: Text(
+                      staff.name
+                          .replaceAll('Dr. ', '')
+                          .replaceAll('Mr. ', '')
+                          .replaceAll('Ms. ', '')
+                          .split(' ')
+                          .where((part) => part.isNotEmpty)
+                          .take(2)
+                          .map((part) => part[0])
+                          .join()
+                          .toUpperCase(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                staff.name,
+                                style: const TextStyle(
+                                  color: AppColors.navy,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                            ),
+                            if (isHod)
+                              const Chip(
+                                side: BorderSide.none,
+                                backgroundColor: Color(0xFFEEF2FF),
+                                label: Text(
+                                  'HOD',
+                                  style: TextStyle(
+                                    color: AppColors.blue,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        Text(
+                          staff.designation,
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 10.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          staff.specialization,
+                          style: const TextStyle(
+                            color: AppColors.blue,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1, color: AppColors.line),
+              const SizedBox(height: 10),
+              _StaffInfoRow(
+                icon: Icons.mail_outline_rounded,
+                value: staff.email,
+              ),
+              const SizedBox(height: 7),
+              _StaffInfoRow(
+                icon: Icons.phone_outlined,
+                value: staff.phone,
+              ),
+              const SizedBox(height: 7),
+              _StaffInfoRow(
+                icon: Icons.meeting_room_outlined,
+                value: 'Office: ' + staff.office,
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _StaffInfoRow extends StatelessWidget {
+  const _StaffInfoRow({
+    required this.icon,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Icon(
+            icon,
+            size: 16,
+            color: AppColors.muted,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: AppColors.navy,
+                fontSize: 10.5,
+              ),
             ),
           ),
         ],
       );
+}
+
+class AdminProfilePage extends StatelessWidget {
+  const AdminProfilePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <(String, IconData, VoidCallback?)>[
+      ('College master data', Icons.account_tree_outlined, null),
+      (
+        'Departments • HOD & Staff',
+        Icons.apartment_outlined,
+        () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const AdminDepartmentsPage(),
+          ),
+        ),
+      ),
+      ('Students & Faculty', Icons.groups_outlined, null),
+      ('Data imports', Icons.upload_file_outlined, null),
+      ('Roles & permissions', Icons.security_outlined, null),
+      ('Audit log', Icons.history_rounded, null),
+      ('Reports & analytics', Icons.analytics_outlined, null),
+    ];
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 90),
+      children: [
+        const PageHeader(
+          'Admin',
+          'System access and college setup',
+        ),
+        const SizedBox(height: 18),
+        Card(
+          child: ListTile(
+            contentPadding: const EdgeInsets.all(15),
+            leading: const CircleAvatar(
+              backgroundColor: Color(0xFFEEF2FF),
+              foregroundColor: AppColors.blue,
+              child: Icon(Icons.apartment_rounded),
+            ),
+            title: const Text(
+              'Department Directory',
+              style: TextStyle(
+                color: AppColors.navy,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            subtitle: Text(
+              campusStore.adminDepartments.length.toString() +
+                  ' departments • HOD and staff profiles',
+            ),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const AdminDepartmentsPage(),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        for (final item in items)
+          Card(
+            margin: const EdgeInsets.only(bottom: 9),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: const Color(0xFFEEF2FF),
+                foregroundColor: AppColors.blue,
+                child: Icon(item.$2),
+              ),
+              title: Text(
+                item.$1,
+                style: const TextStyle(
+                  color: AppColors.navy,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: item.$3 ??
+                  () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(item.$1 + ' module is ready for backend expansion.'),
+                      ),
+                    );
+                  },
+            ),
+          ),
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: () => logout(context),
+          icon: const Icon(Icons.logout_rounded),
+          label: const Text('Logout Admin'),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(50),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class CollegeSearchDelegate extends SearchDelegate<String> {
