@@ -109,6 +109,9 @@ class _RoleHomePageState extends State<RoleHomePage> {
     final selectedQuickIndex = quick.indexWhere(
       (item) => item.module == selectedModule,
     );
+    final drawerIndex = items.indexWhere(
+      (item) => item.module == selectedModule,
+    );
     final navIndex = selectedQuickIndex >= 0
         ? selectedQuickIndex
         : (hasMore ? quick.length : 0);
@@ -278,9 +281,8 @@ class _RoleHomePageState extends State<RoleHomePage> {
               ),
               Expanded(
                 child: NavigationDrawer(
-                  selectedIndex: items.indexWhere(
-                    (item) => item.module == selectedModule,
-                  ),
+                  selectedIndex:
+                      drawerIndex >= 0 ? drawerIndex : null,
                   onDestinationSelected: (index) {
                     if (index < 0 || index >= items.length) return;
                     selectModule(items[index].module);
