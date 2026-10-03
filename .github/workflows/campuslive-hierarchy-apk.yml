@@ -5,8 +5,7 @@ on:
     branches:
       - campuslive-hierarchy-live
     paths:
-      - "campuslive_flutter/lib/hierarchy_*.dart"
-      - "campuslive_flutter/pubspec.yaml"
+      - "campuslive_hierarchy_flutter/**"
       - ".github/workflows/campuslive-hierarchy-apk.yml"
   workflow_dispatch:
 
@@ -17,16 +16,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 35
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify backend health
+      - name: Verify backend
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --retry 8 --retry-delay 5 --retry-all-errors \
-            "https://campuslive-hierarchy-api.onrender.com/health"
+          API="https://campuslive-hierarchy-api.onrender.com"
+          curl --fail --silent --show-error --retry 8 --retry-delay 5 --retry-all-errors "$API/health"
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
@@ -34,49 +34,57 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Generate Android runner
+      - name: Generate Android project
         shell: bash
         run: |
           set -euo pipefail
-          cd campuslive_flutter
-          cp lib/hierarchy_main.dart /tmp/hierarchy_main.dart
-          cp pubspec.yaml /tmp/pubspec.yaml
-          cp analysis_options.yaml /tmp/analysis_options.yaml
-          flutter create . --platforms=android --org com.campuslive --project-name campuslive
-          cp /tmp/hierarchy_main.dart lib/hierarchy_main.dart
-          cp /tmp/pubspec.yaml pubspec.yaml
-          cp /tmp/analysis_options.yaml analysis_options.yaml
+          cd campuslive_hierarchy_flutter
+          cp -r lib /tmp/campuslive_hierarchy_lib
+          cp pubspec.yaml /tmp/campuslive_hierarchy_pubspec.yaml
+          cp analysis_options.yaml /tmp/campuslive_hierarchy_analysis.yaml
+          flutter create . --platforms=android --org com.campuslive --project-name campuslive_hierarchy
+          rm -rf lib
+          cp -r /tmp/campuslive_hierarchy_lib lib
+          cp /tmp/campuslive_hierarchy_pubspec.yaml pubspec.yaml
+          cp /tmp/campuslive_hierarchy_analysis.yaml analysis_options.yaml
           rm -f test/widget_test.dart
           python3 - <<'PY'
           from pathlib import Path
+
           gradle = Path("android/app/build.gradle.kts")
-          s = gradle.read_text()
-          s = s.replace('applicationId = "com.campuslive.livehierarchy"', 'applicationId = "com.campuslive.livehierarchy"')
-          gradle.write_text(s)
+          text = gradle.read_text()
+          text = text.replace(
+              'applicationId = "com.campuslive.campuslive_hierarchy"',
+              'applicationId = "com.campuslive.hierarchy"',
+          )
+          gradle.write_text(text)
 
           manifest = Path("android/app/src/main/AndroidManifest.xml")
-          m = manifest.read_text()
+          text = manifest.read_text()
           permission = '<uses-permission android:name="android.permission.INTERNET"/>'
-          if permission not in m:
-              pos = m.find(">")
-              m = m[:pos+1] + "\n    " + permission + m[pos+1:]
-          m = m.replace('android:label="campuslive"', 'android:label="CampusLive"')
-          manifest.write_text(m)
+          if permission not in text:
+              pos = text.find(">")
+              text = text[:pos + 1] + "\n    " + permission + text[pos + 1:]
+          text = text.replace(
+              'android:label="campuslive_hierarchy"',
+              'android:label="CampusLive"',
+          )
+          manifest.write_text(text)
           PY
           flutter pub get
 
-      - name: Analyze hierarchy app
+      - name: Analyze
         shell: bash
         run: |
-          cd campuslive_flutter
-          flutter analyze lib/hierarchy_main.dart --no-fatal-infos --no-fatal-warnings
+          cd campuslive_hierarchy_flutter
+          flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Build hierarchy release APK
+      - name: Build release APK
         shell: bash
         run: |
           set -euo pipefail
-          cd campuslive_flutter
-          flutter build apk --release -t lib/hierarchy_main.dart
+          cd campuslive_hierarchy_flutter
+          flutter build apk --release
           mkdir -p ../hierarchy_apk_output
           cp build/app/outputs/flutter-apk/app-release.apk ../hierarchy_apk_output/CampusLive-Hierarchy.apk
           sha256sum ../hierarchy_apk_output/CampusLive-Hierarchy.apk > ../hierarchy_apk_output/SHA256.txt
