@@ -33,6 +33,10 @@ class OverviewPage extends StatelessWidget {
           } else if (user.role == 'hod') {
             cards.addAll([
               metricCard('Staff', (d['staff_count'] ?? 0).toString()),
+              metricCard('Students', (d['student_count'] ?? 0).toString()),
+              metricCard('Pending Staff Tasks', (d['pending_staff_tasks'] ?? 0).toString()),
+              metricCard('Staff → Student Active', (d['staff_to_student_active'] ?? 0).toString()),
+              metricCard('Completed', (d['completed_department_tasks'] ?? 0).toString()),
               metricCard('Unread', (d['unread'] ?? 0).toString()),
             ]);
           } else if (user.role == 'staff') {
@@ -525,6 +529,233 @@ class _AssignPageState extends State<AssignPage> {
             ),
           ],
         ],
+      );
+}
+
+class DepartmentActivityPage extends StatelessWidget {
+  const DepartmentActivityPage({super.key});
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: appController,
+        builder: (context, _) => RefreshIndicator(
+          onRefresh: appController.loadDepartmentActivity,
+          child: ListView(
+            padding: const EdgeInsets.all(18),
+            children: [
+              SectionHeader(
+                title: (appController.user?.department ?? 'Department') + ' Live',
+                subtitle: 'Full department information/task flow visible to HOD',
+              ),
+              const SizedBox(height: 14),
+              if (appController.departmentActivity.isEmpty)
+                const EmptyState(
+                  icon: Icons.monitor_heart_outlined,
+                  title: 'No department activity yet',
+                  text:
+                      'HOD → Staff and Staff → Student information/task activity will appear here in real time.',
+                )
+              else
+                for (final item in appController.departmentActivity)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(14),
+                      leading: CircleAvatar(
+                        backgroundColor: const Color(0xFFEEF2FF),
+                        foregroundColor: AppColors.blue,
+                        child: Icon(
+                          item.kind == 'task'
+                              ? Icons.assignment_rounded
+                              : Icons.campaign_rounded,
+                        ),
+                      ),
+                      title: Text(
+                        item.title,
+                        style: const TextStyle(
+                          color: AppColors.navy,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      subtitle: Text(
+                        item.senderName +
+                            ' (' +
+                            roleLabel(item.senderRole) +
+                            ') → ' +
+                            item.recipientName +
+                            ' (' +
+                            roleLabel(item.recipientRole) +
+                            ')\n' +
+                            item.status.toUpperCase(),
+                      ),
+                      isThreeLine: true,
+                    ),
+                  ),
+            ],
+          ),
+        ),
+      );
+}
+
+class TeamManagementPage extends StatelessWidget {
+  const TeamManagementPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final role = appController.user!.role;
+    final creatingRole = role == 'hod' ? 'staff' : 'student';
+    final title = role == 'hod' ? 'Manage Staff' : 'Manage Students';
+
+    return AnimatedBuilder(
+      animation: appController,
+      builder: (context, _) => RefreshIndicator(
+        onRefresh: appController.refreshAll,
+        child: ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
+            SectionHeader(
+              title: title,
+              subtitle: role == 'hod'
+                  ? 'Create and monitor Staff only in your own department'
+                  : 'Create and monitor Students only in your own department',
+              action: FilledButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CreateDownstreamUserPage(
+                      creatingRole: creatingRole,
+                    ),
+                  ),
+                ),
+                icon: const Icon(Icons.person_add_rounded),
+                label: Text('Create ' + roleLabel(creatingRole)),
+              ),
+            ),
+            const SizedBox(height: 14),
+            if (appController.directory.isEmpty)
+              EmptyState(
+                icon: Icons.group_add_outlined,
+                title: 'No ' + roleLabel(creatingRole) + ' accounts yet',
+                text:
+                    'Create accounts from verified department records. No dummy users are generated.',
+              )
+            else
+              for (final person in appController.directory)
+                UserCard(person: person),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CreateDownstreamUserPage extends StatefulWidget {
+  const CreateDownstreamUserPage({
+    super.key,
+    required this.creatingRole,
+  });
+
+  final String creatingRole;
+
+  @override
+  State<CreateDownstreamUserPage> createState() =>
+      _CreateDownstreamUserPageState();
+}
+
+class _CreateDownstreamUserPageState
+    extends State<CreateDownstreamUserPage> {
+  final name = TextEditingController();
+  final email = TextEditingController();
+  final password = TextEditingController();
+  final year = TextEditingController();
+  final section = TextEditingController();
+  bool saving = false;
+
+  Future<void> save() async {
+    if (name.text.trim().isEmpty ||
+        email.text.trim().isEmpty ||
+        password.text.length < 8) {
+      showMessage(
+        context,
+        'Enter name, email and password with at least 8 characters.',
+        error: true,
+      );
+      return;
+    }
+
+    setState(() => saving = true);
+    try {
+      await appController.createDownstreamUser(
+        name: name.text,
+        email: email.text,
+        password: password.text,
+        role: widget.creatingRole,
+        year: year.text,
+        section: section.text,
+      );
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) showMessage(context, e.toString(), error: true);
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'Create ' + roleLabel(widget.creatingRole),
+            style: const TextStyle(
+              color: AppColors.navy,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
+            InfoBanner(
+              icon: Icons.verified_user_outlined,
+              title: 'Department restricted',
+              text: widget.creatingRole == 'staff'
+                  ? 'This Staff account is automatically attached to the HOD\'s own department.'
+                  : 'This Student account is automatically attached to the Staff member\'s own department.',
+            ),
+            const SizedBox(height: 14),
+            formField(name, 'Full Name', Icons.person_rounded),
+            const SizedBox(height: 10),
+            formField(email, 'Official Email', Icons.mail_outline_rounded),
+            const SizedBox(height: 10),
+            TextField(
+              controller: password,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Temporary Password (8+ characters)',
+                prefixIcon: Icon(Icons.lock_outline_rounded),
+              ),
+            ),
+            if (widget.creatingRole == 'student') ...[
+              const SizedBox(height: 10),
+              formField(year, 'Year', Icons.calendar_view_month_rounded),
+              const SizedBox(height: 10),
+              formField(section, 'Section', Icons.view_column_rounded),
+            ],
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: saving ? null : save,
+              icon: const Icon(Icons.person_add_alt_1_rounded),
+              label: Text(
+                saving
+                    ? 'Creating...'
+                    : 'Create ' + roleLabel(widget.creatingRole),
+              ),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+              ),
+            ),
+          ],
+        ),
       );
 }
 
