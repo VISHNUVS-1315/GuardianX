@@ -68,6 +68,10 @@ IconData moduleIcon(String module) {
       return Icons.dashboard_rounded;
     case 'directory':
       return Icons.groups_rounded;
+    case 'department_activity':
+      return Icons.monitor_heart_rounded;
+    case 'manage_team':
+      return Icons.group_add_rounded;
     case 'inbox':
       return Icons.inbox_rounded;
     case 'assign':
