@@ -2848,9 +2848,28 @@ class _CampusAiPageState extends State<CampusAiPage> {
 
 String aiReply(String input) {
   final q = input.toLowerCase();
-  if (q.contains('class')) {
-    return 'Your next class is Engineering Thermodynamics at 11:30 AM in M204.';
+
+  if (q.contains('class') || q.contains('timetable')) {
+    final next = campusStore.timetable.firstWhere(
+      (item) => item.subject != 'Break' && item.subject != 'Lunch',
+      orElse: () => TimetableItem(
+        '11:30',
+        'Engineering Thermodynamics',
+        'M204',
+        'Dr. Kumar',
+      ),
+    );
+    return 'Your next class is ' +
+        next.subject +
+        ' at ' +
+        next.time +
+        ' in ' +
+        next.room +
+        ' with ' +
+        next.faculty +
+        '.';
   }
+
   if (q.contains('bus')) {
     if (campusStore.busCode.isEmpty) {
       return 'Your profile does not have a college bus assigned.';
@@ -2862,26 +2881,116 @@ String aiReply(String input) {
         campusStore.busEta.toString() +
         ' minutes.';
   }
+
+  if (q.contains('attendance')) {
+    return 'Your overall attendance is ' +
+        campusStore.attendancePercent.toString() +
+        '%. Open My Academic → Attendance for subject-wise details.';
+  }
+
+  if (q.contains('assignment')) {
+    return 'You currently have ' +
+        campusStore.assignmentsDue.toString() +
+        ' pending assignments. ' +
+        (campusStore.moduleRows['Assignments']?.take(2).join(' | ') ?? '');
+  }
+
+  if (q.contains('exam') || q.contains('test')) {
+    final rows = campusStore.moduleRows['Tests & Exams'] ?? const [];
+    return rows.isEmpty
+        ? 'No exam information is available right now.'
+        : 'Upcoming: ' + rows.take(3).join(' | ');
+  }
+
+  if (q.contains('mark') || q.contains('cgpa')) {
+    return 'Your current CGPA is ' +
+        campusStore.cgpa.toStringAsFixed(2) +
+        '. Open My Academic → Marks for subject details.';
+  }
+
+  if (q.contains('fee')) {
+    final rows = campusStore.moduleRows['Fees'] ?? const [];
+    return rows.isEmpty ? 'Fee status is unavailable.' : rows.join(' | ');
+  }
+
   if (q.contains('room')) {
     final names = campusStore.rooms
         .where((room) => room.available)
         .map((room) => room.name)
         .join(', ');
-    return 'Available rooms for your department now: ' + names + '.';
+    return names.isEmpty
+        ? 'No free department room is listed right now.'
+        : 'Available rooms for your department now: ' + names + '.';
   }
+
   if (q.contains('lab')) {
-    return 'CAD Lab has 21 systems free. AI Lab has 42 systems free.';
+    final available = campusStore.labs
+        .where((lab) => lab.available > 0)
+        .map((lab) => lab.name + ' (' + lab.available.toString() + ' free)')
+        .join(', ');
+    return 'Available labs: ' + available + '.';
   }
+
   if (q.contains('library')) {
-    return 'Main Library is open until 8 PM with about 182 seats available.';
+    return 'Main Library is ' +
+        (campusStore.libraryOpen ? 'open' : 'closed') +
+        ', closes at ' +
+        campusStore.libraryCloses +
+        ', with about ' +
+        campusStore.librarySeats.toString() +
+        ' seats available.';
   }
+
+  if (q.contains('canteen') || q.contains('lunch') || q.contains('food')) {
+    final rows = campusStore.moduleRows['Canteen'] ?? campusStore.canteenWindows;
+    return rows.take(5).join(' | ');
+  }
+
   if (q.contains('placement') || q.contains('zoho')) {
-    return 'Zoho drive: Technical Round, queue #7.';
+    if (!campusStore.placementEligible) {
+      return 'Your profile is currently marked not eligible for this placement drive.';
+    }
+    return campusStore.placementCompany +
+        ' — ' +
+        campusStore.placementRole +
+        ', ' +
+        campusStore.placementRound +
+        ' round, queue #' +
+        campusStore.placementQueue.toString() +
+        '.';
   }
+
   if (q.contains('event')) {
-    return 'Upcoming: EV Design Workshop, TechFest 2026 and CAD Sprint Challenge.';
+    if (campusStore.events.isEmpty) {
+      return 'No event information is available.';
+    }
+    return 'Upcoming events: ' +
+        campusStore.events
+            .take(3)
+            .map((event) => event.title + ' on ' + event.date)
+            .join(', ') +
+        '.';
   }
-  return 'I can help with timetable, rooms, transport, labs, library, placement, events and college services.';
+
+  if (q.contains('complaint')) {
+    if (campusStore.complaints.isEmpty) {
+      return 'You have no complaints currently listed.';
+    }
+    return 'Your latest complaint is ' +
+        campusStore.complaints.first.id +
+        ' — ' +
+        campusStore.complaints.first.issue +
+        ' — status ' +
+        campusStore.complaints.first.status +
+        '.';
+  }
+
+  if (q.contains('certificate')) {
+    final rows = campusStore.moduleRows['Certificates'] ?? const [];
+    return rows.take(4).join(' | ');
+  }
+
+  return 'I can help with your timetable, bus, attendance, assignments, exams, marks, fees, rooms, labs, library, canteen, placement, events, complaints and certificates.';
 }
 
 class AdminShell extends StatefulWidget {
