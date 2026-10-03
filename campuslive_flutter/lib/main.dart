@@ -62,6 +62,68 @@ class EventItem {
   bool registered;
 }
 
+class StaffMember {
+  StaffMember({
+    required this.name,
+    required this.designation,
+    required this.specialization,
+    required this.email,
+    required this.phone,
+    required this.office,
+  });
+
+  final String name;
+  final String designation;
+  final String specialization;
+  final String email;
+  final String phone;
+  final String office;
+
+  factory StaffMember.fromJson(Map<String, dynamic> json) => StaffMember(
+        name: (json['name'] ?? '').toString(),
+        designation: (json['designation'] ?? '').toString(),
+        specialization: (json['specialization'] ?? '').toString(),
+        email: (json['email'] ?? '').toString(),
+        phone: (json['phone'] ?? '').toString(),
+        office: (json['office'] ?? '').toString(),
+      );
+}
+
+class DepartmentDirectory {
+  DepartmentDirectory({
+    required this.code,
+    required this.name,
+    required this.block,
+    required this.hod,
+    required this.staff,
+  });
+
+  final String code;
+  final String name;
+  final String block;
+  final StaffMember hod;
+  final List<StaffMember> staff;
+
+  factory DepartmentDirectory.fromJson(Map<String, dynamic> json) {
+    final rawStaff = json['staff'] as List<dynamic>? ?? const [];
+    return DepartmentDirectory(
+      code: (json['code'] ?? '').toString(),
+      name: (json['name'] ?? '').toString(),
+      block: (json['block'] ?? '').toString(),
+      hod: StaffMember.fromJson(
+        (json['hod'] as Map<String, dynamic>?) ?? const {},
+      ),
+      staff: rawStaff
+          .map(
+            (item) => StaffMember.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
 class CampusStore extends ChangeNotifier {
   CampusStore() {
     _timer = Timer.periodic(const Duration(seconds: 6), (_) {
@@ -144,6 +206,152 @@ class CampusStore extends ChangeNotifier {
     EventItem(1, 'EV Design Workshop', 'Oct 04', 42, false),
     EventItem(2, 'TechFest 2026', 'Oct 12', 113, false),
     EventItem(3, 'CAD Sprint Challenge', 'Oct 18', 28, false),
+  ];
+
+  final List<DepartmentDirectory> adminDepartments = [
+    DepartmentDirectory(
+      code: 'MECH',
+      name: 'Mechanical Engineering',
+      block: 'Mechanical Block',
+      hod: StaffMember(
+        name: 'Dr. Aravind Kumar',
+        designation: 'Professor & Head of Department',
+        specialization: 'Thermal Engineering',
+        email: 'mech.hod@campuslive.demo',
+        phone: '+91 90000 11001',
+        office: 'MECH-HOD-01',
+      ),
+      staff: [
+        StaffMember(name: 'Dr. Ravi M.', designation: 'Professor', specialization: 'Engineering Mechanics', email: 'ravi.mech@campuslive.demo', phone: '+91 90000 11011', office: 'M-F12'),
+        StaffMember(name: 'Dr. Priya S.', designation: 'Associate Professor', specialization: 'Material Science', email: 'priya.mech@campuslive.demo', phone: '+91 90000 11012', office: 'M-F14'),
+        StaffMember(name: 'Dr. Devi K.', designation: 'Associate Professor', specialization: 'Manufacturing Engineering', email: 'devi.mech@campuslive.demo', phone: '+91 90000 11013', office: 'M-F16'),
+        StaffMember(name: 'Mr. Arun P.', designation: 'Assistant Professor', specialization: 'CAD / CAM', email: 'arun.mech@campuslive.demo', phone: '+91 90000 11014', office: 'CAD Centre'),
+      ],
+    ),
+    DepartmentDirectory(
+      code: 'CSE',
+      name: 'Computer Science & Engineering',
+      block: 'CSE Block',
+      hod: StaffMember(
+        name: 'Dr. Meena R.',
+        designation: 'Professor & Head of Department',
+        specialization: 'Distributed Systems',
+        email: 'cse.hod@campuslive.demo',
+        phone: '+91 90000 12001',
+        office: 'CSE-HOD-01',
+      ),
+      staff: [
+        StaffMember(name: 'Dr. Karthik V.', designation: 'Professor', specialization: 'Data Structures & Algorithms', email: 'karthik.cse@campuslive.demo', phone: '+91 90000 12011', office: 'C-F11'),
+        StaffMember(name: 'Ms. Nivetha S.', designation: 'Assistant Professor', specialization: 'Database Systems', email: 'nivetha.cse@campuslive.demo', phone: '+91 90000 12012', office: 'C-F13'),
+        StaffMember(name: 'Mr. Sanjay R.', designation: 'Assistant Professor', specialization: 'Cloud Computing', email: 'sanjay.cse@campuslive.demo', phone: '+91 90000 12013', office: 'C-F15'),
+        StaffMember(name: 'Ms. Aarthi P.', designation: 'Assistant Professor', specialization: 'Mobile Application Development', email: 'aarthi.cse@campuslive.demo', phone: '+91 90000 12014', office: 'C-F18'),
+      ],
+    ),
+    DepartmentDirectory(
+      code: 'AIML',
+      name: 'Artificial Intelligence & ML',
+      block: 'AI Block',
+      hod: StaffMember(
+        name: 'Dr. Lakshmi N.',
+        designation: 'Professor & Head of Department',
+        specialization: 'Machine Learning',
+        email: 'aiml.hod@campuslive.demo',
+        phone: '+91 90000 13001',
+        office: 'AI-HOD-01',
+      ),
+      staff: [
+        StaffMember(name: 'Dr. Hari P.', designation: 'Associate Professor', specialization: 'Deep Learning', email: 'hari.aiml@campuslive.demo', phone: '+91 90000 13011', office: 'AI-F10'),
+        StaffMember(name: 'Ms. Swetha K.', designation: 'Assistant Professor', specialization: 'Computer Vision', email: 'swetha.aiml@campuslive.demo', phone: '+91 90000 13012', office: 'AI-F12'),
+        StaffMember(name: 'Mr. Naveen R.', designation: 'Assistant Professor', specialization: 'Natural Language Processing', email: 'naveen.aiml@campuslive.demo', phone: '+91 90000 13013', office: 'AI-F14'),
+      ],
+    ),
+    DepartmentDirectory(
+      code: 'ECE',
+      name: 'Electronics & Communication',
+      block: 'ECE Block',
+      hod: StaffMember(
+        name: 'Dr. Revathi P.',
+        designation: 'Professor & Head of Department',
+        specialization: 'VLSI & Embedded Systems',
+        email: 'ece.hod@campuslive.demo',
+        phone: '+91 90000 14001',
+        office: 'ECE-HOD-01',
+      ),
+      staff: [
+        StaffMember(name: 'Dr. Vinoth K.', designation: 'Professor', specialization: 'Communication Systems', email: 'vinoth.ece@campuslive.demo', phone: '+91 90000 14011', office: 'ECE-F11'),
+        StaffMember(name: 'Ms. Keerthana R.', designation: 'Assistant Professor', specialization: 'Embedded Systems', email: 'keerthana.ece@campuslive.demo', phone: '+91 90000 14012', office: 'ECE-F13'),
+        StaffMember(name: 'Mr. Praveen S.', designation: 'Assistant Professor', specialization: 'Digital Electronics', email: 'praveen.ece@campuslive.demo', phone: '+91 90000 14013', office: 'ECE-F15'),
+      ],
+    ),
+    DepartmentDirectory(
+      code: 'EEE',
+      name: 'Electrical & Electronics',
+      block: 'EEE Block',
+      hod: StaffMember(
+        name: 'Dr. Suresh B.',
+        designation: 'Professor & Head of Department',
+        specialization: 'Power Systems',
+        email: 'eee.hod@campuslive.demo',
+        phone: '+91 90000 15001',
+        office: 'EEE-HOD-01',
+      ),
+      staff: [
+        StaffMember(name: 'Dr. Anitha M.', designation: 'Associate Professor', specialization: 'Electrical Machines', email: 'anitha.eee@campuslive.demo', phone: '+91 90000 15011', office: 'EEE-F11'),
+        StaffMember(name: 'Mr. Dinesh K.', designation: 'Assistant Professor', specialization: 'Power Electronics', email: 'dinesh.eee@campuslive.demo', phone: '+91 90000 15012', office: 'EEE-F13'),
+      ],
+    ),
+    DepartmentDirectory(
+      code: 'CIVIL',
+      name: 'Civil Engineering',
+      block: 'Civil Block',
+      hod: StaffMember(
+        name: 'Dr. Mohan Raj',
+        designation: 'Professor & Head of Department',
+        specialization: 'Structural Engineering',
+        email: 'civil.hod@campuslive.demo',
+        phone: '+91 90000 16001',
+        office: 'CE-HOD-01',
+      ),
+      staff: [
+        StaffMember(name: 'Dr. Gayathri S.', designation: 'Associate Professor', specialization: 'Geotechnical Engineering', email: 'gayathri.civil@campuslive.demo', phone: '+91 90000 16011', office: 'CE-F11'),
+        StaffMember(name: 'Mr. Ajay K.', designation: 'Assistant Professor', specialization: 'Surveying', email: 'ajay.civil@campuslive.demo', phone: '+91 90000 16012', office: 'CE-F13'),
+      ],
+    ),
+    DepartmentDirectory(
+      code: 'IT',
+      name: 'Information Technology',
+      block: 'IT Block',
+      hod: StaffMember(
+        name: 'Dr. Priyanka S.',
+        designation: 'Professor & Head of Department',
+        specialization: 'Cyber Security',
+        email: 'it.hod@campuslive.demo',
+        phone: '+91 90000 17001',
+        office: 'IT-HOD-01',
+      ),
+      staff: [
+        StaffMember(name: 'Dr. Ashok R.', designation: 'Associate Professor', specialization: 'Networks & Security', email: 'ashok.it@campuslive.demo', phone: '+91 90000 17011', office: 'IT-F11'),
+        StaffMember(name: 'Ms. Harini V.', designation: 'Assistant Professor', specialization: 'Web Technologies', email: 'harini.it@campuslive.demo', phone: '+91 90000 17012', office: 'IT-F13'),
+      ],
+    ),
+    DepartmentDirectory(
+      code: 'S&H',
+      name: 'Science & Humanities',
+      block: 'Main Block',
+      hod: StaffMember(
+        name: 'Dr. Malathi K.',
+        designation: 'Professor & Head',
+        specialization: 'Engineering Mathematics',
+        email: 'science.hod@campuslive.demo',
+        phone: '+91 90000 18001',
+        office: 'SH-HOD-01',
+      ),
+      staff: [
+        StaffMember(name: 'Dr. Selvi R.', designation: 'Associate Professor', specialization: 'Engineering Chemistry', email: 'selvi.sh@campuslive.demo', phone: '+91 90000 18011', office: 'SH-F11'),
+        StaffMember(name: 'Mr. Ganesh P.', designation: 'Assistant Professor', specialization: 'Engineering Physics', email: 'ganesh.sh@campuslive.demo', phone: '+91 90000 18012', office: 'SH-F13'),
+        StaffMember(name: 'Ms. Divya N.', designation: 'Assistant Professor', specialization: 'Technical English', email: 'divya.sh@campuslive.demo', phone: '+91 90000 18013', office: 'SH-F15'),
+      ],
+    ),
   ];
 
   String placementCompany = 'Zoho';
@@ -353,6 +561,27 @@ class CampusStore extends ChangeNotifier {
                   raw.map((item) => item.toString()).toList();
             }
           }
+          anySuccess = true;
+        }
+      } catch (_) {}
+    }
+
+    if (role == 'admin') {
+      try {
+        final response = await _client
+            .get(_uri('/admin/departments'), headers: _headers)
+            .timeout(const Duration(seconds: 12));
+        if (response.statusCode == 200) {
+          final list = jsonDecode(response.body) as List<dynamic>;
+          adminDepartments
+            ..clear()
+            ..addAll(
+              list.map(
+                (raw) => DepartmentDirectory.fromJson(
+                  raw as Map<String, dynamic>,
+                ),
+              ),
+            );
           anySuccess = true;
         }
       } catch (_) {}
