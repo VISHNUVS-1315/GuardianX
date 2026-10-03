@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, create_engine, func, select
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, create_engine, func, or_, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 
@@ -126,13 +126,16 @@ DEFAULT_MODULES = {
     ],
     "hod": [
         ("overview", "Department Overview"),
+        ("department_activity", "Department Live"),
         ("directory", "Staff"),
+        ("manage_team", "Manage Staff"),
         ("inbox", "Inbox"),
         ("assign", "Assign to Staff"),
     ],
     "staff": [
         ("overview", "Staff Overview"),
         ("directory", "Students"),
+        ("manage_team", "Manage Students"),
         ("inbox", "Inbox"),
         ("assign", "Assign to Students"),
     ],
@@ -324,22 +327,30 @@ def audit(db: Session, user: User, action: str, detail: str = "") -> None:
 
 
 def ensure_default_portal(db: Session, college_id: int) -> None:
-    exists = db.scalar(select(PortalConfig.id).where(PortalConfig.college_id == college_id).limit(1))
-    if exists is not None:
-        return
+    changed = False
     for role, modules in DEFAULT_MODULES.items():
         for position, (module, label) in enumerate(modules):
-            db.add(
-                PortalConfig(
-                    college_id=college_id,
-                    role=role,
-                    module=module,
-                    label=label,
-                    enabled=True,
-                    position=position,
-                )
+            exists = db.scalar(
+                select(PortalConfig.id).where(
+                    PortalConfig.college_id == college_id,
+                    PortalConfig.role == role,
+                    PortalConfig.module == module,
+                ).limit(1)
             )
-    db.commit()
+            if exists is None:
+                db.add(
+                    PortalConfig(
+                        college_id=college_id,
+                        role=role,
+                        module=module,
+                        label=label,
+                        enabled=True,
+                        position=position,
+                    )
+                )
+                changed = True
+    if changed:
+        db.commit()
 
 
 def allowed_recipient(sender: User, recipient: User) -> bool:
@@ -508,15 +519,56 @@ def dashboard(user: User = Depends(current_user), db: Session = Depends(get_db))
         base.update({"hod_count": hods})
 
     elif user.role == "hod":
-        staff = db.scalar(
-            select(func.count(User.id)).where(
+        staff_rows = db.scalars(
+            select(User).where(
                 User.college_id == user.college_id,
                 User.department_id == user.department_id,
                 User.role == "staff",
                 User.is_active.is_(True),
             )
+        ).all()
+        student_rows = db.scalars(
+            select(User).where(
+                User.college_id == user.college_id,
+                User.department_id == user.department_id,
+                User.role == "student",
+                User.is_active.is_(True),
+            )
+        ).all()
+        staff_ids = [row.id for row in staff_rows]
+        student_ids = [row.id for row in student_rows]
+        pending_staff_tasks = db.scalar(
+            select(func.count(Assignment.id)).where(
+                Assignment.college_id == user.college_id,
+                Assignment.sender_id == user.id,
+                Assignment.recipient_id.in_(staff_ids),
+                Assignment.status != "done",
+            )
         ) or 0
-        base.update({"staff_count": staff})
+        staff_to_student_active = db.scalar(
+            select(func.count(Assignment.id)).where(
+                Assignment.college_id == user.college_id,
+                Assignment.sender_id.in_(staff_ids),
+                Assignment.recipient_id.in_(student_ids),
+                Assignment.status != "done",
+            )
+        ) or 0
+        completed_department_tasks = db.scalar(
+            select(func.count(Assignment.id)).where(
+                Assignment.college_id == user.college_id,
+                Assignment.recipient_id.in_(staff_ids + student_ids),
+                Assignment.status == "done",
+            )
+        ) or 0
+        base.update(
+            {
+                "staff_count": len(staff_rows),
+                "student_count": len(student_rows),
+                "pending_staff_tasks": pending_staff_tasks,
+                "staff_to_student_active": staff_to_student_active,
+                "completed_department_tasks": completed_department_tasks,
+            }
+        )
 
     elif user.role == "staff":
         students = db.scalar(
