@@ -55,7 +55,7 @@ jobs:
           text = gradle.read_text()
           text = text.replace(
               'applicationId = "com.campuslive.campuslive_hierarchy"',
-              'applicationId = "com.campuslive.hierarchy"',
+              'applicationId = "com.campuslive.hierarchyfinal"',
           )
           gradle.write_text(text)
 
