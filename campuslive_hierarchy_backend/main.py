@@ -908,6 +908,39 @@ async def update_portal(
     return {"ok": True}
 
 
+@app.get("/admin/assignments")
+def admin_assignments(
+    user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    rows = db.scalars(
+        select(Assignment)
+        .where(Assignment.college_id == user.college_id)
+        .order_by(Assignment.created_at.desc())
+        .limit(300)
+    ).all()
+    result = []
+    for row in rows:
+        sender = db.get(User, row.sender_id)
+        recipient = db.get(User, row.recipient_id)
+        result.append(
+            {
+                "id": row.id,
+                "kind": row.kind,
+                "title": row.title,
+                "body": row.body,
+                "status": row.status,
+                "sender_name": sender.name if sender else "Unknown",
+                "sender_role": sender.role if sender else "",
+                "recipient_name": recipient.name if recipient else "Unknown",
+                "recipient_role": recipient.role if recipient else "",
+                "created_at": row.created_at.isoformat(),
+                "updated_at": row.updated_at.isoformat(),
+            }
+        )
+    return result
+
+
 @app.get("/admin/audit")
 def admin_audit(
     user: User = Depends(require_role("admin")),
