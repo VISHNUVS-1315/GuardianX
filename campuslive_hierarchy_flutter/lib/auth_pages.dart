@@ -259,6 +259,7 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       );
+}
 
 class SetupCollegePage extends StatefulWidget {
   const SetupCollegePage({super.key});
