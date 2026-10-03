@@ -5,7 +5,8 @@ on:
     branches:
       - campuslive-hierarchy-live
     paths:
-      - "campuslive_hierarchy_app/**"
+      - "campuslive_flutter/lib/hierarchy_main.dart"
+      - "campuslive_flutter/pubspec.yaml"
       - ".github/workflows/campuslive-hierarchy-apk.yml"
   workflow_dispatch:
 
@@ -16,10 +17,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 35
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Verify backend health
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 8 --retry-delay 5 --retry-all-errors \
+            "https://campuslive-hierarchy-api.onrender.com/health"
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
@@ -27,31 +34,24 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Backend health
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail --silent --show-error --retry 8 --retry-delay 5 --retry-all-errors \
-            https://campuslive-hierarchy-api.onrender.com/health
-
       - name: Generate Android runner
         shell: bash
         run: |
           set -euo pipefail
-          cd campuslive_hierarchy_app
-          cp lib/main.dart /tmp/hierarchy_main.dart
-          cp pubspec.yaml /tmp/hierarchy_pubspec.yaml
-          cp analysis_options.yaml /tmp/hierarchy_analysis.yaml
-          flutter create . --platforms=android --org com.campuslive --project-name campuslive_hierarchy
-          cp /tmp/hierarchy_main.dart lib/main.dart
-          cp /tmp/hierarchy_pubspec.yaml pubspec.yaml
-          cp /tmp/hierarchy_analysis.yaml analysis_options.yaml
+          cd campuslive_flutter
+          cp lib/hierarchy_main.dart /tmp/hierarchy_main.dart
+          cp pubspec.yaml /tmp/pubspec.yaml
+          cp analysis_options.yaml /tmp/analysis_options.yaml
+          flutter create . --platforms=android --org com.campuslive --project-name campuslive
+          cp /tmp/hierarchy_main.dart lib/hierarchy_main.dart
+          cp /tmp/pubspec.yaml pubspec.yaml
+          cp /tmp/analysis_options.yaml analysis_options.yaml
           rm -f test/widget_test.dart
           python3 - <<'PY'
           from pathlib import Path
           gradle = Path("android/app/build.gradle.kts")
           s = gradle.read_text()
-          s = s.replace('applicationId = "com.campuslive.campuslive_hierarchy"', 'applicationId = "com.campuslive.hierarchy"')
+          s = s.replace('applicationId = "com.campuslive.campuslive"', 'applicationId = "com.campuslive.hierarchy"')
           gradle.write_text(s)
 
           manifest = Path("android/app/src/main/AndroidManifest.xml")
@@ -60,30 +60,30 @@ jobs:
           if permission not in m:
               pos = m.find(">")
               m = m[:pos+1] + "\n    " + permission + m[pos+1:]
-          m = m.replace('android:label="campuslive_hierarchy"', 'android:label="CampusLive"')
+          m = m.replace('android:label="campuslive"', 'android:label="CampusLive"')
           manifest.write_text(m)
           PY
           flutter pub get
 
-      - name: Analyze
+      - name: Analyze hierarchy app
         shell: bash
         run: |
-          cd campuslive_hierarchy_app
-          flutter analyze --no-fatal-infos --no-fatal-warnings
+          cd campuslive_flutter
+          flutter analyze lib/hierarchy_main.dart --no-fatal-infos --no-fatal-warnings
 
-      - name: Build release APK
+      - name: Build hierarchy release APK
         shell: bash
         run: |
           set -euo pipefail
-          cd campuslive_hierarchy_app
-          flutter build apk --release
+          cd campuslive_flutter
+          flutter build apk --release -t lib/hierarchy_main.dart
           mkdir -p ../hierarchy_apk_output
           cp build/app/outputs/flutter-apk/app-release.apk ../hierarchy_apk_output/CampusLive-Hierarchy.apk
           sha256sum ../hierarchy_apk_output/CampusLive-Hierarchy.apk > ../hierarchy_apk_output/SHA256.txt
           unzip -t ../hierarchy_apk_output/CampusLive-Hierarchy.apk >/dev/null
           BUILD_TOOLS=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
           "$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner" verify --verbose --print-certs ../hierarchy_apk_output/CampusLive-Hierarchy.apk
-          "$ANDROID_HOME/build-tools/$BUILD_TOOLS/aapt" dump badging ../hierarchy_apk_output/CampusLive-Hierarchy.apk | head -n 6
+          "$ANDROID_HOME/build-tools/$BUILD_TOOLS/aapt" dump badging ../hierarchy_apk_output/CampusLive-Hierarchy.apk | head -n 8
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
