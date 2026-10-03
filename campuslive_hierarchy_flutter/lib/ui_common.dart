@@ -71,7 +71,7 @@ IconData moduleIcon(String module) {
     case 'inbox':
       return Icons.inbox_rounded;
     case 'assign':
-      return Icons.assignment_add_rounded;
+      return Icons.assignment_rounded;
     case 'users':
       return Icons.manage_accounts_rounded;
     case 'departments':
