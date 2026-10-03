@@ -590,6 +590,107 @@ def directory(user: User = Depends(current_user), db: Session = Depends(get_db))
     return [user_json(row, db) for row in rows]
 
 
+@app.get("/department/activity")
+def department_activity(
+    user: User = Depends(require_role("hod")),
+    db: Session = Depends(get_db),
+):
+    if user.department_id is None:
+        raise HTTPException(status_code=400, detail="HOD has no department")
+
+    members = db.scalars(
+        select(User).where(
+            User.college_id == user.college_id,
+            User.department_id == user.department_id,
+            User.is_active.is_(True),
+        )
+    ).all()
+    member_ids = [row.id for row in members]
+
+    rows = db.scalars(
+        select(Assignment)
+        .where(
+            Assignment.college_id == user.college_id,
+            or_(
+                Assignment.sender_id.in_(member_ids),
+                Assignment.recipient_id.in_(member_ids),
+            ),
+        )
+        .order_by(Assignment.created_at.desc())
+        .limit(150)
+    ).all()
+
+    result = []
+    for row in rows:
+        sender = db.get(User, row.sender_id)
+        recipient = db.get(User, row.recipient_id)
+        result.append(
+            {
+                "id": row.id,
+                "kind": row.kind,
+                "title": row.title,
+                "body": row.body,
+                "status": row.status,
+                "sender_name": sender.name if sender else "Unknown",
+                "sender_role": sender.role if sender else "",
+                "recipient_name": recipient.name if recipient else "Unknown",
+                "recipient_role": recipient.role if recipient else "",
+                "created_at": row.created_at.isoformat(),
+                "updated_at": row.updated_at.isoformat(),
+            }
+        )
+    return result
+
+
+@app.post("/hierarchy/users")
+async def create_downstream_user(
+    body: UserBody,
+    creator: User = Depends(require_role("hod", "staff")),
+    db: Session = Depends(get_db),
+):
+    if creator.department_id is None:
+        raise HTTPException(status_code=400, detail="Creator has no department")
+
+    requested_role = body.role.strip().lower()
+    allowed_role = "staff" if creator.role == "hod" else "student"
+    if requested_role != allowed_role:
+        raise HTTPException(
+            status_code=403,
+            detail=f"{creator.role.upper()} can create only {allowed_role} accounts",
+        )
+
+    email = body.email.strip().lower()
+    if db.scalar(
+        select(User).where(
+            User.college_id == creator.college_id,
+            func.lower(User.email) == email,
+        )
+    ) is not None:
+        raise HTTPException(status_code=409, detail="Email already exists in this college")
+
+    row = User(
+        college_id=creator.college_id,
+        department_id=creator.department_id,
+        name=body.name.strip(),
+        email=email,
+        password_hash=hash_password(body.password),
+        role=allowed_role,
+        year=body.year.strip() if allowed_role == "student" else "",
+        section=body.section.strip() if allowed_role == "student" else "",
+    )
+    db.add(row)
+    db.flush()
+    audit(
+        db,
+        creator,
+        "user.created.downstream",
+        f"{row.name} ({row.role}) in department_id={creator.department_id}",
+    )
+    db.commit()
+    await hub.broadcast(creator.college_id, "users.changed")
+    return user_json(row, db)
+
+
 @app.get("/inbox")
 def inbox(user: User = Depends(current_user), db: Session = Depends(get_db)):
     rows = db.scalars(
