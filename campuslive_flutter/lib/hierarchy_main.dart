@@ -314,11 +314,20 @@ class Inbox extends StatelessWidget{const Inbox({super.key});
   @override Widget build(BuildContext c)=>RefreshIndicator(onRefresh:st.refresh,child:ListView(padding:const EdgeInsets.all(18),children:[
     const Head('Inbox','Information and tasks sent to you'),const SizedBox(height:14),
     if(st.inbox.isEmpty)const EmptyBox(Icons.inbox_outlined,'Inbox is empty','Parent-role updates appear here in real time.')
-    else for(final x in st.inbox)Card(margin:const EdgeInsets.only(bottom:10),child:ListTile(
-      leading:CircleAvatar(child:Icon(x['kind']=='task'?Icons.assignment_rounded:Icons.campaign_rounded)),
-      title:Text(x['title'].toString(),style:const TextStyle(fontWeight:FontWeight.w900)),
-      subtitle:Text(x['body'].toString()+'\nFrom '+x['sender_name'].toString()+' • '+x['status'].toString().toUpperCase()),
-      isThreeLine:true,onTap:()async{try{await st.mark((x['id'] as num).toInt(),'done');}catch(e){if(c.mounted)msg(c,e.toString(),true);}})
+    else for(final x in st.inbox)
+      Card(
+        margin:const EdgeInsets.only(bottom:10),
+        child:ListTile(
+          leading:CircleAvatar(child:Icon(x['kind']=='task'?Icons.assignment_rounded:Icons.campaign_rounded)),
+          title:Text(x['title'].toString(),style:const TextStyle(fontWeight:FontWeight.w900)),
+          subtitle:Text(x['body'].toString()+'\nFrom '+x['sender_name'].toString()+' • '+x['status'].toString().toUpperCase()),
+          isThreeLine:true,
+          onTap:()async{
+            try{await st.mark((x['id'] as num).toInt(),'done');}
+            catch(e){if(c.mounted)msg(c,e.toString(),true);}
+          },
+        ),
+      )
   ]));
 }
 
