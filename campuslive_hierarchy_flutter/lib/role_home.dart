@@ -169,6 +169,10 @@ class _RoleHomePageState extends State<RoleHomePage> {
         return const OverviewPage();
       case 'directory':
         return const DirectoryPage();
+      case 'department_activity':
+        return const DepartmentActivityPage();
+      case 'manage_team':
+        return const TeamManagementPage();
       case 'inbox':
         return const InboxPage();
       case 'assign':
