@@ -164,6 +164,95 @@ class CampusStore extends ChangeNotifier {
     'Snacks counter open',
   ];
 
+  List<String> busStops = [
+    'Udumalpet Bus Stand • My stop',
+    'Pollachi Road',
+    'Kinathukadavu',
+    'Campus',
+  ];
+
+  final Map<String, List<String>> moduleRows = {
+    'Attendance': [
+      'Engineering Mechanics — 86% • Present 31/36',
+      'Engineering Thermodynamics — 91% • Present 32/35',
+      'Material Science — 82% • Present 28/34',
+      'CAD Lab — 94% • Present 17/18',
+      'Overall attendance — 86%',
+    ],
+    'Assignments': [
+      'Thermodynamics Assignment 2 — Due Oct 05 • Pending',
+      'CAD Drawing Sheet 4 — Due Oct 06 • Pending',
+      'Material Science Report — Due Oct 08 • Pending',
+      'Engineering Mechanics Tutorial 3 — Submitted',
+    ],
+    'Tests & Exams': [
+      'Internal Assessment 2 — Oct 09 • 09:30 AM',
+      'Thermodynamics — Oct 09 • M204',
+      'Material Science — Oct 10 • M202',
+      'Engineering Mechanics — Oct 12 • M201',
+      'CAD Practical — Oct 14 • CAD Lab',
+    ],
+    'Marks': [
+      'Engineering Mechanics — IA1 76/100',
+      'Thermodynamics — IA1 82/100',
+      'Material Science — IA1 79/100',
+      'CAD Practical — 88/100',
+      'Current CGPA — 7.64',
+    ],
+    'Materials': [
+      'Thermodynamics Unit 1–3 Notes • Updated Oct 01',
+      'Engineering Mechanics Formula Sheet',
+      'Material Science Unit 2 PPT',
+      'CAD Lab Exercise Manual',
+      'Manufacturing Process Question Bank',
+    ],
+    'Faculty': [
+      'Dr. Kumar — Engineering Thermodynamics • Mechanical Block',
+      'Dr. Ravi — Engineering Mechanics • Mechanical Block',
+      'Dr. Priya — Material Science • Mechanical Block',
+      'Mr. Arun — CAD Lab • CAD Centre',
+      'Dr. Devi — Manufacturing Process • Mechanical Block',
+    ],
+    'Fees': [
+      'Tuition fee 2026–27 — Paid',
+      'Exam fee — ₹1,500 • Due Oct 15',
+      'Transport fee — Paid • Bus 07',
+      'No overdue payment',
+    ],
+    'Certificates': [
+      'Bonafide Certificate — Request available',
+      'Student Verification Letter — Request available',
+      'Fee Receipt — Download available',
+      'Attendance Certificate — Request available',
+    ],
+    'Lost & Found': [
+      'Black earbuds case — Found near Library • Oct 02',
+      'Blue ID card holder — Found in Main Block • Oct 01',
+      'Scientific calculator — Found in M203 • Sep 30',
+    ],
+    'Library': [
+      'Library status — Open until 8:00 PM',
+      'Available seats — 182',
+      'Borrowed: Engineering Thermodynamics — Due Oct 11',
+      'Borrowed: Material Science — Due Oct 16',
+      'Mechanical collection — 2,340 titles',
+    ],
+    'Canteen': [
+      'Main canteen — Open',
+      'Breakfast — 08:00 to 10:00',
+      'Lunch — 12:00 to 14:30',
+      'Snacks — 15:30 to 17:30',
+      'Today\'s lunch: Rice, sambar, poriyal, curd',
+    ],
+    'Help Desk': [
+      'Academic office — Main Block Ground Floor',
+      'Transport desk — 08:00 to 17:00',
+      'Placement cell — Block A First Floor',
+      'IT support — near CSE Block',
+      'Campus security — available 24×7',
+    ],
+  };
+
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
@@ -250,6 +339,23 @@ class CampusStore extends ChangeNotifier {
           anySuccess = true;
         }
       } catch (_) {}
+
+      try {
+        final response = await _client
+            .get(_uri('/student/modules'), headers: _headers)
+            .timeout(const Duration(seconds: 12));
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          for (final entry in data.entries) {
+            final raw = entry.value;
+            if (raw is List) {
+              moduleRows[entry.key] =
+                  raw.map((item) => item.toString()).toList();
+            }
+          }
+          anySuccess = true;
+        }
+      } catch (_) {}
     }
 
     try {
@@ -328,6 +434,10 @@ class CampusStore extends ChangeNotifier {
           busCode = (item['code'] ?? busCode).toString();
           busDisplay = (item['display'] ?? busDisplay).toString();
           boardingStop = (item['boarding_stop'] ?? boardingStop).toString();
+          final rawStops = item['route_stops'];
+          if (rawStops is List) {
+            busStops = rawStops.map((stop) => stop.toString()).toList();
+          }
           busEta = (item['eta_minutes'] as num?)?.toInt() ?? busEta;
           final status = (item['status'] ?? 'On time').toString().toLowerCase();
           busOnTime = !status.contains('delay');
@@ -2258,12 +2368,7 @@ class TransportPage extends StatelessWidget {
                 const SizedBox(height: 14),
                 const SectionTitle('My route'),
                 const SizedBox(height: 10),
-                for (final stop in [
-                  campusStore.boardingStop + ' • My stop',
-                  'Pollachi Road • Route',
-                  'Kinathukadavu • Route',
-                  'Campus • Destination',
-                ])
+                for (final stop in campusStore.busStops)
                   Card(
                     margin: const EdgeInsets.only(bottom: 9),
                     child: ListTile(
@@ -2554,22 +2659,6 @@ class GenericModulePage extends StatelessWidget {
 }
 
 List<String> genericRows(String title) {
-  if (title == 'Attendance') {
-    return [
-      'Engineering Mechanics — 86%',
-      'Thermodynamics — 91%',
-      'Material Science — 82%',
-      'CAD Lab — 94%',
-    ];
-  }
-  if (title == 'Marks') {
-    return [
-      'Internal Test 1 — 78%',
-      'Internal Test 2 — 82%',
-      'CAD Practical — 88%',
-      'Semester CGPA — 7.64',
-    ];
-  }
   if (title == 'Labs') {
     return campusStore.labs.map((lab) {
       final suffix = lab.note.isEmpty ? '' : ' • ' + lab.note;
@@ -2582,6 +2671,12 @@ List<String> genericRows(String title) {
           suffix;
     }).toList();
   }
+
+  final personalized = campusStore.moduleRows[title];
+  if (personalized != null && personalized.isNotEmpty) {
+    return personalized;
+  }
+
   if (title == 'Library') {
     return [
       campusStore.libraryOpen ? 'Library — Open' : 'Library — Closed',
@@ -2590,12 +2685,14 @@ List<String> genericRows(String title) {
       'Mechanical books — ' + campusStore.libraryTitles.toString() + ' titles',
     ];
   }
+
   if (title == 'Canteen') {
     return [
       campusStore.canteenOpen ? 'Main canteen — Open' : 'Main canteen — Closed',
       ...campusStore.canteenWindows,
     ];
   }
+
   return [
     title + ' overview',
     title + ' latest updates',
