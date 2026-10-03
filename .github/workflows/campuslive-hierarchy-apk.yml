@@ -5,7 +5,7 @@ on:
     branches:
       - campuslive-hierarchy-live
     paths:
-      - "campuslive_flutter/lib/hierarchy_main.dart"
+      - "campuslive_flutter/lib/hierarchy_*.dart"
       - "campuslive_flutter/pubspec.yaml"
       - ".github/workflows/campuslive-hierarchy-apk.yml"
   workflow_dispatch:
@@ -51,7 +51,7 @@ jobs:
           from pathlib import Path
           gradle = Path("android/app/build.gradle.kts")
           s = gradle.read_text()
-          s = s.replace('applicationId = "com.campuslive.campuslive"', 'applicationId = "com.campuslive.hierarchy"')
+          s = s.replace('applicationId = "com.campuslive.livehierarchy"', 'applicationId = "com.campuslive.livehierarchy"')
           gradle.write_text(s)
 
           manifest = Path("android/app/src/main/AndroidManifest.xml")
