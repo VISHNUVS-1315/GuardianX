@@ -349,7 +349,7 @@ class AppController extends ChangeNotifier {
   }
 
   void _connectRealtime() {
-    _wsSubscription?.cancel();
+    _socketSub?.cancel();
     _socket?.sink.close();
     _heartbeat?.cancel();
 
@@ -363,7 +363,7 @@ class AppController extends ChangeNotifier {
         wsBase + '/ws?token=' + Uri.encodeQueryComponent(token!),
       );
       _socket = WebSocketChannel.connect(wsUri);
-      _wsSubscription = _socket!.stream.listen(
+      _socketSub = _socket!.stream.listen(
         (_) => unawaited(refreshAll()),
         onError: (_) {},
         onDone: () {},
@@ -381,7 +381,7 @@ class AppController extends ChangeNotifier {
 
   void logout() {
     _heartbeat?.cancel();
-    _wsSubscription?.cancel();
+    _socketSub?.cancel();
     _socket?.sink.close();
 
     token = null;
@@ -402,7 +402,7 @@ class AppController extends ChangeNotifier {
   @override
   void dispose() {
     _heartbeat?.cancel();
-    _wsSubscription?.cancel();
+    _socketSub?.cancel();
     _socket?.sink.close();
     _client.close();
     super.dispose();
