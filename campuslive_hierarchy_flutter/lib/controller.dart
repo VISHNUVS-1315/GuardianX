@@ -35,6 +35,7 @@ class AppController extends ChangeNotifier {
   List<DepartmentItem> departments = [];
   List<AuditItem> auditItems = [];
   List<ChainItem> chainItems = [];
+  List<ChainItem> departmentActivity = [];
 
   bool get loggedIn => token != null && user != null;
 
@@ -197,6 +198,8 @@ class AppController extends ChangeNotifier {
           loadAudit(),
           loadChain(),
         ]);
+      } else if (user?.role == 'hod') {
+        await loadDepartmentActivity();
       }
 
       online = true;
@@ -232,6 +235,16 @@ class AppController extends ChangeNotifier {
     final rows =
         await _request('GET', '/admin/assignments') as List<dynamic>;
     chainItems = rows
+        .map((e) => ChainItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+    notifyListeners();
+  }
+
+  Future<void> loadDepartmentActivity() async {
+    if (user?.role != 'hod') return;
+    final rows =
+        await _request('GET', '/department/activity') as List<dynamic>;
+    departmentActivity = rows
         .map((e) => ChainItem.fromJson(e as Map<String, dynamic>))
         .toList();
     notifyListeners();
@@ -274,6 +287,30 @@ class AppController extends ChangeNotifier {
         'password': password,
         'role': role,
         'department_id': departmentId,
+        'year': year.trim(),
+        'section': section.trim(),
+      },
+    );
+    await refreshAll();
+  }
+
+  Future<void> createDownstreamUser({
+    required String name,
+    required String email,
+    required String password,
+    required String role,
+    String year = '',
+    String section = '',
+  }) async {
+    await _request(
+      'POST',
+      '/hierarchy/users',
+      body: {
+        'name': name.trim(),
+        'email': email.trim(),
+        'password': password,
+        'role': role,
+        'department_id': user?.departmentId,
         'year': year.trim(),
         'section': section.trim(),
       },
@@ -396,6 +433,7 @@ class AppController extends ChangeNotifier {
     departments = [];
     auditItems = [];
     chainItems = [];
+    departmentActivity = [];
     notifyListeners();
   }
 
