@@ -62,6 +62,64 @@ IconData roleIcon(String role) {
   }
 }
 
+Color moduleColor(String module) {
+  switch (module) {
+    case 'overview':
+      return AppColors.blue;
+    case 'directory':
+      return AppColors.green;
+    case 'department_activity':
+      return AppColors.cyan;
+    case 'manage_team':
+      return AppColors.purple;
+    case 'inbox':
+      return AppColors.orange;
+    case 'assign':
+      return AppColors.blue;
+    case 'users':
+      return AppColors.green;
+    case 'departments':
+      return AppColors.purple;
+    case 'portal_control':
+      return AppColors.orange;
+    case 'live_activity':
+      return AppColors.cyan;
+    case 'profile':
+      return AppColors.navy;
+    default:
+      return AppColors.blue;
+  }
+}
+
+String moduleHint(String module) {
+  switch (module) {
+    case 'overview':
+      return 'Live summary';
+    case 'directory':
+      return 'People and roles';
+    case 'department_activity':
+      return 'What is happening now';
+    case 'manage_team':
+      return 'Create and manage';
+    case 'inbox':
+      return 'Updates for you';
+    case 'assign':
+      return 'Send information';
+    case 'users':
+      return 'College accounts';
+    case 'departments':
+      return 'Department setup';
+    case 'portal_control':
+      return 'Control role pages';
+    case 'live_activity':
+      return 'Audit and monitoring';
+    case 'profile':
+      return 'Account details';
+    default:
+      return '';
+  }
+}
+
 IconData moduleIcon(String module) {
   switch (module) {
     case 'overview':
